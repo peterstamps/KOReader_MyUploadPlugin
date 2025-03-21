@@ -1,0 +1,21 @@
+-- Kindle seems to have a own firewall.
+-- It causes issues. I cannot test that
+-- The http inspector plugin use following code.
+-- Maybe that solves the issue
+-- Note the 8080 port !! 
+-- Must be equal to the port you have set for the Upload plugin
+
+-- Insert this code at line 33 of main.lua
+--  So just before the line with this comment:
+ -- Get the ereader settings when not defined
+
+-- Make a hole in the Kindle's firewall
+if Device:isKindle() then
+        os.execute(string.format("%s %s %s",
+            "iptables -A INPUT -p tcp --dport", 8080,
+            "-m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT"))
+        os.execute(string.format("%s %s %s",
+            "iptables -A OUTPUT -p tcp --sport", 8080,
+            "-m conntrack --ctstate ESTABLISHED -j ACCEPT"))
+end
+
