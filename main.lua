@@ -1001,7 +1001,7 @@ function MyUpload:addToMainMenu(menu_items)
                 separator=false,
               }, 
 				{  
-                text = "Login at http:// " .. Upload_parms_ip_address .. ":" ..  tostring(port), 
+                text = "Login at http://" .. Upload_parms_ip_address .. ":" ..  tostring(port), 
                 enabled=false,
                 separator=true,
               },               
@@ -1011,7 +1011,7 @@ function MyUpload:addToMainMenu(menu_items)
                 separator=true,
 				callback = function()
 					UIManager:show(QRMessage:new{
-						text = "http:// " .. Upload_parms_ip_address .. ":" ..  tostring(port),
+						text = "http://" .. Upload_parms_ip_address .. ":" ..  tostring(port),
 						width = Device.screen:getWidth(),
 						height = Device.screen:getHeight()
 					})
