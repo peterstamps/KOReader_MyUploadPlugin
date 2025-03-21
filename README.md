@@ -24,3 +24,35 @@ The browser menu provides various (sorted) folder listings from where you can do
 You can also download all your clipping files that contain the notes you made in your ebooks from the clipboard folder that you have set in KOreader.
 
 See the screen prints to get an overview.
+
+Note for Kindle users: read comment in file firewall_rule_for_kindle.txt as the Kindle firewall seems to block this plugin. 
+
+
+Remedy when ip 127.0.0.1 is set!!!!!
+
+IMPORTANT TO AVOID ISSUES WITH CONNECTIONS....
+
+MAKE SURE BEFORE STARTING THE PLUGIN THAT YOU HAVE WIFI ON AND THAT THE DEVICE IS CONNECTED TO YOUR LAN, SO THAT IT HAS AN REAL LAN IP!!
+
+Installation
+
+Locate folder where KOReader is installed, 
+e.g. on Kobo :
+  /mnt/onboard/.adds/koreader/
+The plugins directory will be:
+  /mnt/onboard/.adds/koreader/plugins
+ 
+Create  in plugins the sub directory MyUpload.koplugin like:
+  /mnt/onboard/.adds/koreader/plugins/MyUpload.koplugin
+ 
+Now unzip MyUpload.koplugin.zip and copy these two files:
+ _meta.lua 
+main.lua 
+into the new sub directory .../plugins/MyUpload.koplugin.
+
+Open folder  /mnt/onboard/.adds/koreader/plugins/MyUpload.koplugin and check that these two files are in that directory!
+
+Done. Now start KOReader
+
+See /search also Reddit KOreader
+
