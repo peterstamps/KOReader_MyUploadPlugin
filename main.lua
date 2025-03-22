@@ -464,6 +464,7 @@ end
 -- HTTP server logic
 function handle_request(client_socket)
     local request = client_socket:receive("*l")
+    if not request then return end
         -- Parse URL
     local method, path = request:match("([A-Z]+) (/[^ ]*)")  
     -- Read the rest of the request headers

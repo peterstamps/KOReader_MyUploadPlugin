@@ -1,4 +1,4 @@
-Last updated: Version 1.1.2 at 2025-04-22 time 16:37 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
+Last updated: Version 1.1.3 at 2025-04-22 time 20:05 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
 
 The valid license for this open source plugin is AGPL Version 3.0
 
@@ -96,4 +96,7 @@ version: 1.1.1
 
 version: 1.1.2
 - List eBooks in Folders (sub function List) showed ebooks in that subfolder. The download URL was wrong. Now corrected
+
+version: 1.1.3
+- When a user had accessed the Upload Server succesfully then closed its browser(tab) and lateron restarted with the same browser the (new) session again by entering the URL of the Upload Server and directly submitted a request then it is possible that the browser is sending an EMPTY request. Those empty request where send to and received by the Upload Server plugin leading to a crash of KOReader. When now empty requests are detected the plugin skips them and continues with next request. 
 
