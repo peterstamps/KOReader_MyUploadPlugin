@@ -199,7 +199,7 @@ function download_file(file_name, client_socket)
     else
 		local html = html_header("Error") .. 
     	[[
-        <p>File not found</p>]]  ..  html_footer()	    
+        <p>File not found: ]] ..file_path .. [[ </p>]]  ..  html_footer()	    
 		send_response(client_socket, "200 OK", "text/html", html, cookie)   
     end
 end
@@ -614,7 +614,7 @@ function handle_request(client_socket)
         html = html_header("Files in folder") ..   
         "<table><thead><tr><th>" .. clipping_dir .. "</th></tr></thead><table>"
         for _, file in ipairs(files) do
-            html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
+            html = html .. "<tr><td><a href='/download?file=" ..  url.escape(clipping_dir .. '/' ..file) .. "' download='" 
 				  .. file ..  "'>" .. file .. "</a></td><tr>"
         end
         html = html .. "</table>" .. html_footer()
@@ -906,6 +906,17 @@ function start_server()
         print("Server is already running.")
         return
     end	
+    
+    -- Make a hole in the Kindle's firewall
+    if Device:isKindle() then
+        os.execute(string.format("%s %s %s",
+            "iptables -A INPUT -p tcp --dport", port,
+            "-m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT"))
+        os.execute(string.format("%s %s %s",
+            "iptables -A OUTPUT -p tcp --sport", port,
+            "-m conntrack --ctstate ESTABLISHED -j ACCEPT"))
+    end
+    
     server_socket = assert(socket.bind('*', port))
     server_socket:settimeout(0)  -- Non-blocking
     print("Upload server started to run on port " .. tostring(port) .. ' for ' .. tostring(seconds_runtime) ..  ' seconds.')
@@ -977,10 +988,11 @@ function MyUpload:init()
 end
 
 function MyUpload:addToMainMenu(menu_items)
+	check_socket()	
 	local Upload_parms = G_reader_settings:readSetting("Upload_parms")
 	local Upload_parms_port, Upload_seconds_run, Upload_username, Upload_password
 	if Upload_parms then 
-	    Upload_parms_ip_address = tostring(Upload_parms["ip_address"])
+	    Upload_parms_ip_address =  tostring(real_ip)
 		Upload_parms_port = tonumber(Upload_parms["port"])
 		Upload_seconds_run = tonumber(Upload_parms["seconds_runtime"])
 		Upload_username =  tostring(Upload_parms["username"]) 
@@ -991,7 +1003,7 @@ function MyUpload:addToMainMenu(menu_items)
         -- sorting_hint = "more_tools",
         sub_item_table = { 
 		    {  
-                text = "Is Wifi ON? Then start Upload server", 
+                text = "Is device via Wifi connected to LAN? Then start Upload server", 
                 enabled=false,
                 separator=false,
               }, 
@@ -1105,7 +1117,8 @@ function MyUpload:addToMainMenu(menu_items)
 														if not new_password or new_password == " "  then
 															--default new_password
 															 new_password = '1234'
-														end																													
+														end	
+																																										
 														G_reader_settings:saveSetting("Upload_parms", {ip_address = tostring(ip_address), port = tonumber(new_port), seconds_runtime = tonumber(new_seconds_runtime), username = tostring(new_username), password = tostring(new_password) })
 														-- after save make these values the actual ones
 														--port = tonumber(new_port)
