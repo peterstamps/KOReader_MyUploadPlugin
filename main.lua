@@ -29,7 +29,8 @@ local mime = require("mime")
 local lfs = require("libs/libkoreader-lfs")
 
 local sock = require("socket")
-print('version=',sock._VERSION)
+-- print('version=',sock._VERSION)
+
 
 -- Get the ereader settings when not defined
 if G_reader_settings == nil then
@@ -45,13 +46,21 @@ end
 ebooks_dir_to_list =  G_reader_settings:readSetting("home_dir")
 upload_dir = ebooks_dir_to_list  -- we save books in the Home directory that has been set
 
--- Get the Clippings ebooks folder on the ereader to start the search for Clipping files
-local Exporter_parms = G_reader_settings:readSetting("exporter")
-local clipping_dir, Upload_seconds_run, Upload_username, Upload_password
-if Exporter_parms then 
-	clipping_dir = tostring(Exporter_parms["clipping_dir"])
-else
-   clipping_dir =  ebooks_dir_to_list
+-- Set the default Clipboard folder = base ebooks folder on the ereader when not defined
+if G_reader_settings:hasNot("exporter") then
+	G_reader_settings:saveSetting("exporter", {clipping_dir = tostring(ebooks_dir_to_list)})
+end
+
+-- Get the Clippings folder on the ereader to start the search for Clipping files
+Exporter_parms = G_reader_settings:readSetting("exporter")
+
+clipping_dir = 'None'
+if Exporter_parms then
+	if not Exporter_parms["clipping_dir"] then
+		clipping_dir = 'None'
+	else
+		clipping_dir =  tostring(Exporter_parms["clipping_dir"]) 
+	end
 end
 
 -- Create a simple HTTP response with proper headers, body and cookie
@@ -134,7 +143,7 @@ end
 
 -- List files in the root directory recursively
 local function list_files(dir)
-	if not dir then
+	if string.len(dir) == 0  then
 	  dir = '.'
 	end
     local files = {}
@@ -586,16 +595,29 @@ function handle_request(client_socket)
      -- Handle GET request for home page
 	 elseif method == 'GET' and path == "/upload"  then
 	   if is_authorized(headers) then   
+		 if ebooks_dir_to_list then  -- test  value
+			local comment
+		    if ebooks_dir_to_list == "." then
+				comment = " (Note that the KOReader Home folder is not set!)"
+			else
+				comment = " (KOReader Home folder)"	
+		   end	 
 		   local html = html_header("Upload eBook") ..
 			[[
-			<p>Upload File to homedir]] ..ebooks_dir_to_list .. [[</p>
+			<p>Upload File to homedir: ]] ..ebooks_dir_to_list .. comment ..[[</p>
 			<p>
 				<form action='/upload' method='POST' enctype='multipart/form-data'>
 				Select file: <input type='file' name='file' multiple><br>
 				<input type='submit' value='Upload'></form>
 			</p>
 			]] .. html_footer() 
-		send_response(client_socket, "200 OK", "text/html", html, cookie)  
+			send_response(client_socket, "200 OK", "text/html", html, cookie)  
+		else
+		    html = html_header("Upload eBook") ..   
+		    [[<p>No Home folder is specified in Koreader</p>
+		      <p>To specify the Home folder go to the KOReader 'Cabinet icon" menu &gt; Settings &gt; Home folder settings &gt; Set home folder.</p>]] .. html_footer()
+		    send_response(client_socket, "200 OK", "text/html", html, cookie)  
+		end		
       else -- Authentication failed, redirect to login page       
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end  
@@ -603,22 +625,29 @@ function handle_request(client_socket)
     -- Handle GET request for file listing      
     elseif method == 'GET' and path == "/clipping_dir" then 
       if is_authorized(headers) then   
-		local files = list_files(clipping_dir)		
-		keys = {}
-		for key, _ in pairs(files) do
-			table.insert(keys, key)
+        if clipping_dir ~= 'None' then  
+			local files = list_files(clipping_dir)		
+			keys = {}
+			for key, _ in pairs(files) do
+				table.insert(keys, key)
+			end
+			-- sort the folders
+			table.sort(keys, function(keyLhs, keyRhs) return files[keyLhs] < files[keyRhs] end)
+			-- construct the html page
+			html = html_header("Files in folder") ..   
+			"<table><thead><tr><th>" .. clipping_dir .. "</th></tr></thead><table>"
+			for _, file in ipairs(files) do
+				html = html .. "<tr><td><a href='/download?file=" ..  url.escape(clipping_dir .. '/' ..file) .. "' download='" 
+					  .. file ..  "'>" .. file .. "</a></td><tr>"
+			end
+			html = html .. "</table>" .. html_footer()
+			send_response(client_socket, "200 OK", "text/html", html, cookie)  
+		else
+		    html = html_header("Files in folder") ..   
+		    [[<p>No Export folder for Notes and Highlights is specified in Koreader</p>
+		      <p>To specify this folder go to the KOReader 'Wrench/Screwdriver icon" menu &gt; Export Highlights &gt; Choose Export folder.</p>]] .. html_footer()
+		    send_response(client_socket, "200 OK", "text/html", html, cookie)  
 		end
-		-- sort the folders
-		table.sort(keys, function(keyLhs, keyRhs) return files[keyLhs] < files[keyRhs] end)
-		-- construct the html page
-        html = html_header("Files in folder") ..   
-        "<table><thead><tr><th>" .. clipping_dir .. "</th></tr></thead><table>"
-        for _, file in ipairs(files) do
-            html = html .. "<tr><td><a href='/download?file=" ..  url.escape(clipping_dir .. '/' ..file) .. "' download='" 
-				  .. file ..  "'>" .. file .. "</a></td><tr>"
-        end
-        html = html .. "</table>" .. html_footer()
-        send_response(client_socket, "200 OK", "text/html", html, cookie)  
       else -- Authentication failed, redirect to login page       
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end  
@@ -627,23 +656,29 @@ function handle_request(client_socket)
     -- Handle GET request for indir 	(selected on folders list)   
 	elseif method == 'GET' and path:match("(/indir)/?(.+)") then 
 	  if is_authorized(headers) then 
-		-- Parse the query string part of the URL 
-		-- GET example query starts with ? !
-		--  url query:  ?dir=/root/folder&ebook=my.epub
-		--      query_params.dir will contain /root/folder
-		--      query_params.ebook will contain my.epub
-		local query_params = url_path_parsing(path)
-		-- Print the value of the 'dir' parameter
-		local dir_to_list = url.unescape(query_params.dir) or "."
-		local files = list_files(dir_to_list)
-        html = html_header("Files in folder") ..   
-        "<table><thead><tr><th>" .. dir_to_list .. "</th></tr></thead><table>"
-        for _, file in ipairs(files) do
-            html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
-				  .. file ..  "'>" .. file .. "</a></td><tr>"
-        end
-        html = html .. "</table>" .. html_footer()
-        send_response(client_socket, "200 OK", "text/html", html, cookie)    
+		if string.len(path) ~= 0 then -- test nil value
+			-- Parse the query string part of the URL 
+			-- GET example query starts with ? !
+			--  url query:  ?dir=/root/folder&ebook=my.epub
+			--      query_params.dir will contain /root/folder
+			--      query_params.ebook will contain my.epub
+			local query_params = url_path_parsing(path)
+			-- Print the value of the 'dir' parameter
+			local dir_to_list = url.unescape(query_params.dir) or "."
+			local files = list_files(dir_to_list)
+			html = html_header("Files in folder") ..   
+			"<table><thead><tr><th>" .. dir_to_list .. "</th></tr></thead><table>"
+			for _, file in ipairs(files) do
+				html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
+					  .. file ..  "'>" .. file .. "</a></td><tr>"
+			end
+			html = html .. "</table>" .. html_footer()
+			send_response(client_socket, "200 OK", "text/html", html, cookie)   
+		else
+		    html = html_header("Files in folder") ..   
+		    [[<p>No folder was specified in the request. Retry again.</p>]] .. html_footer()
+		    send_response(client_socket, "200 OK", "text/html", html, cookie)  
+		end			 
       else -- Authentication failed, redirect to login page       
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end  
@@ -652,8 +687,14 @@ function handle_request(client_socket)
     elseif method == 'GET' and path == "/files" then 
       if is_authorized(headers) then   
 		local files = list_files(ebooks_dir_to_list)
+		local comment
+		if ebooks_dir_to_list == "." then
+			comment = " (KOreader Home folder is not set!)"
+		else
+			comment = " (KOReader Home folder)"
+		end
         html = html_header("Files in Home folder") ..   
-        "<table><thead><tr><th>" .. ebooks_dir_to_list .. "</th></tr></thead><table>"
+        "<table><thead><tr><th>" .. ebooks_dir_to_list .. comment .. "</th></tr></thead><table>"
         for _, file in ipairs(files) do
             html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
 				  .. file ..  "'>" .. file .. "</a></td><tr>"

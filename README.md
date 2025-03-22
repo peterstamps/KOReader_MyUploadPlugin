@@ -1,4 +1,4 @@
-Last updated: Version 1.1 at 2025-04-22 time 11:15 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
+Last updated: Version 1.1.1 at 2025-04-22 time 15:35 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
 
 The valid license for this open source plugin is AGPL Version 3.0
 
@@ -42,7 +42,7 @@ WHAT TO DO IF YOU CANNOT ACCESS FROM A BROWSER THE UPLOAD SERVER?
 Check the following points:
 1. Is Wifi ON? -> Switch on Wifi
 2. Is device connected to the LAN? -> Login to your LAN with the KOReader device as an IP is required. Check IP
-3. Is Plugin Settings menu function showing your LAN IP -> Use Plugin menu Reset function and Restart again the device. Check Steps 1 and 2 after a restart!
+3. Is Plugin Settings menu function NOT showing your LAN IP but just 127.0.0.1? -> Use Plugin menu Reset function, Restart KOReader or the device when needed and check Steps 1 and 2 after a restart!
 4. Is the Upload Server running? -> Your Menu should be blocked else (re-)start the Upload Server
 5. Is your browser showing "Unable to connect" -> Check if the Upload server is still running (see point 4) as the runtime might be over (automatic stop is activated)!
 6. You still connect connect after checking above points? -> Is there a firewall blocking the connection? That firewall can be running on your router, your Browser device and/or your KOReader device. The port you have set may not be blocked by the firewall. Maybe some ereader devices with build-in firewall do not allow you to connect to your LAN. If the latter is the case you might be stuck. See the note about Kindle firewall before.
@@ -86,3 +86,10 @@ version: 1.1
 - Always an Error page was shown when downloading a clipping file. The wrong directory path was set. Now corrected.
 - Added Firewall rule for Kindle device which is a copy of the rules as set in the standard HTTP Inspector plugin of KOReader.
 - Expanded the README.md file with Installation process and a Checklist for problem solving
+
+version: 1.1.1
+- Download of a clipping file failed and Plugin crashed when the user has no "Notes and Highlights Export folder" set. 
+  This is now checked and a message will be shown when using function: List Clipboard folder
+- When the user has no Home folder set the "run time folder" marked with a "." is set 
+  This is now checked and a message will be shown when using function: List Home folder
+- Improved handling of IP address and Nil folder values. You cannot override the IP address
