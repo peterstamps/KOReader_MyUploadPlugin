@@ -1,4 +1,4 @@
-Last updated: Version 1.1.1 at 2025-04-22 time 15:35 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
+Last updated: Version 1.1.2 at 2025-04-22 time 16:37 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
 
 The valid license for this open source plugin is AGPL Version 3.0
 
@@ -93,3 +93,7 @@ version: 1.1.1
 - When the user has no Home folder set the "run time folder" marked with a "." is set 
   This is now checked and a message will be shown when using function: List Home folder
 - Improved handling of IP address and Nil folder values. You cannot override the IP address
+
+version: 1.1.2
+- List eBooks in Folders (sub function List) showed ebooks in that subfolder. The download URL was wrong. Now corrected
+

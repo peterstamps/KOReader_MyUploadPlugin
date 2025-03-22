@@ -669,7 +669,7 @@ function handle_request(client_socket)
 			html = html_header("Files in folder") ..   
 			"<table><thead><tr><th>" .. dir_to_list .. "</th></tr></thead><table>"
 			for _, file in ipairs(files) do
-				html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
+				html = html .. "<tr><td><a href='/download?file=" ..  url.escape(dir_to_list .. '/' ..file) .. "' download='" 
 					  .. file ..  "'>" .. file .. "</a></td><tr>"
 			end
 			html = html .. "</table>" .. html_footer()
