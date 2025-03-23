@@ -105,6 +105,22 @@ local function html_header(title)
         .error { color: red; font-size: 14px; margin: 10px 0; }
         .show-password { margin-top: 10px; }
     </style>
+    <script>
+        function validateFile() {
+            const fileInput = document.getElementById('fileUpload');
+            const files = fileInput.files;
+            const allowedExtensions = /(\.gz)|(\.zip)|(\.tar)$/i;
+
+            for (let i = 0; i < files.length; i++) {
+                if (allowedExtensions.test(files[i].name)) {
+                    alert("Error: .gz, .zip and .tar files are not allowed.\nUpload only supported files!");
+                    fileInput.value = ''; // Clear the input
+                    return false; // Prevent form submission
+                }
+            }
+            return true; // Allow form submission
+        }
+    </script>  
 </head>
 <body>
     <html>
@@ -118,6 +134,8 @@ local function html_header(title)
         a {color: blue; text-decoration: none;}
         .nav {margin-top: 20px;padding: 5px;}
     </style>
+    <script>
+    </script>
     </head>
 
     <body>
@@ -607,8 +625,8 @@ function handle_request(client_socket)
 			[[
 			<p>Upload File to homedir: ]] ..ebooks_dir_to_list .. comment ..[[</p>
 			<p>
-				<form action='/upload' method='POST' enctype='multipart/form-data'>
-				Select file: <input type='file' name='file' multiple><br>
+				<form onsubmit="return validateFile()" action='/upload' method='POST' enctype='multipart/form-data'>
+				Select file: <input type='file' id="fileUpload" name='file' multiple  accept=".epub,.azw3,.mobi,.pdf,.txt" required/><br>
 				<input type='submit' value='Upload'></form>
 			</p>
 			]] .. html_footer() 
@@ -840,7 +858,9 @@ function handle_request(client_socket)
 			local parts = {}
 			local boundary_pattern = "--" .. boundary
 			local end_boundary = "--" .. boundary .. "--"
-			local start_index = 1		
+			local start_index = 1	
+			local all_html =  html_header("File upload results") .. "<table>" 			
+			
 			-- Loop through and extract the multipart parts
 			while true do
 			  local start_pos, end_pos = body:find(boundary_pattern, start_index)
@@ -852,48 +872,45 @@ function handle_request(client_socket)
 			  if content_disposition then
 				  filename = content_disposition
 			  end
-			  if filename then
+			  -- print('filename = ', filename)
+			  if filename and filename ~= "" then
 				-- Data declarations of allow file extensions to be uploaded
 				local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt"}
-				local path, file, extension = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")
-				if extMatch(extentions, file) == false then
-				  local html = html_header("File cannot be uploaded.") .. 
-				  [[
-					<p>File extention not allowed. Upload another file with supported extension!</p> 
-					]]  ..  html_footer()
-				    send_response(client_socket, "200 OK", "text/html", html, cookie)					
-					return
-				end      
+				local path, file, extension = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")       
 				local file_hdrs_data_ = body:sub(end_pos + 4, body:find(end_boundary , end_pos ) - 1) -- this is inclusive the headers 			
 				--[[- IMPORTANT we need to strip these lines!!! form the file_hrs_data
 				Content-Disposition: form-data; name="file"; filename="My World - T. Writer (57).epub"
 				Content-Type: application/epub+zip
 				--]]	
+				
 				local blank_line_index = file_hdrs_data_:find("\r\n\r\n")
 				local real_file_content = file_hdrs_data_:sub(blank_line_index+4)
 				-- Save the file
-				if save_file(real_file_content, filename) then
-				  local html = html_header("Save file") .. 
+				if save_file(real_file_content, filename) and extMatch(extentions, file) == true then
+				  local html = 
 				  [[
-					<p>File uploaded successfully!</p> 
-					<p>]] .. filename.. [[</p> 
-					]]  ..  html_footer()
-				  send_response(client_socket, "200 OK", "text/html", html, cookie)
+					<tr><td>]] .. filename .. [[</td><td>File uploaded successfully</td></tr> 
+					]]  
+					all_html = all_html .. html
+				  --send_response(client_socket, "200 OK", "text/html", html, cookie)
 				else
-					local html = html_header("1Error in Save file") .. 
+					local html = 
 					[[
-					<p>Failed to save file!</p>
-					]]  ..  html_footer()				
-				  send_response(client_socket, "500 Internal Server Error", "text/html", html, cookie)
-				end		  
+					<tr><td>]]  .. filename .. [[</td><td>Failed to save file. Extension not supported?</td></tr> 
+					]]  	
+					all_html = all_html .. html				
+				  --send_response(client_socket, "500 Internal Server Error", "text/html", html, cookie)
+				end					 
 			  end
 			  start_index = end_pos + 1
 			end
+			 all_html = all_html .. "</table>"  ..  html_footer()	
+			send_response(client_socket, "200 OK", "text/html", all_html, cookie)
 		  else
 			local html = html_header("Error occured") ..  
 				[[
 				<p>Invalid request! Retry another function/request.</p>    	
-				]]  ..  html_footer()	 			
+				]] .. "</table>"  ..  html_footer()	 			
 			    send_response(client_socket, "400 Bad Request", "text/html", html, cookie)	
 		  end	  
 		end
@@ -901,16 +918,20 @@ function handle_request(client_socket)
 end
 
 function save_file(file_data, filename)
-  local file_path = upload_dir .. "/" .. filename
-  file_path = url_decode(file_path)
-  local file, err = io.open(file_path, "wb")
-  if not file then
-    print("Error opening file for writing: " .. err)
-    return false
+  if filename and file_data then
+	  local file_path = upload_dir .. "/" .. filename
+	  file_path = url_decode(file_path)
+	  local file, err = io.open(file_path, "wb")
+	  if not file then
+		print("Error opening file for writing: " .. err)
+		return false
+	  end
+	  file:write(file_data)
+	  file:close()
+	  return true
+  else
+	return false
   end
-  file:write(file_data)
-  file:close()
-  return true
 end
 -- --------------------------------------------------------------------------------------------------
 
@@ -983,6 +1004,15 @@ function start_server()
 	end
 	wait(seconds_runtime) -- in seconds the the Upload Server will stop automatically to save battery
 	if server_socket then
+		-- Close the hole in the Kindle's firewall
+		if Device:isKindle() then
+			os.execute(string.format("%s %s %s",
+				"iptables -D INPUT -p tcp --dport", port,
+				"-m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT"))
+			os.execute(string.format("%s %s %s",
+				"iptables -D OUTPUT -p tcp --sport", port,
+				"-m conntrack --ctstate ESTABLISHED -j ACCEPT"))
+		end	
 		server_running = false
 		server_socket:close()
 		date = os.date('*t')

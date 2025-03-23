@@ -100,3 +100,12 @@ version: 1.1.2
 version: 1.1.3
 - When a user had accessed the Upload Server succesfully then closed its browser(tab) and lateron restarted with the same browser the (new) session again by entering the URL of the Upload Server and directly submitted a request then it is possible that the browser is sending an EMPTY request. Those empty request where send to and received by the Upload Server plugin leading to a crash of KOReader. When now empty requests are detected the plugin skips them and continues with next request. 
 
+version: 1.1.4
+- Upload of .gz file caused KOReader to crash. Now uploads of .gz, .zip and .tar files are rejected by the Upload form
+- Multiple file upload was possible, but for each file a response form was generated and the returned page looked somewhat strange
+  Now the upload response page is formatted shows all results in a table.
+  IMPORTANT: limit the number of files in one go as you might crash your KOReader due to memory overflows.
+  Do not go beyond the capabilities of your device. As a rule of tumb upload maximum 5 files/eBooks at a time.
+  
+  
+
