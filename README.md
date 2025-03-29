@@ -1,4 +1,4 @@
-Last updated: Version 1.1.3 at 2025-04-22 time 20:05 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
+Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
 
 The valid license for this open source plugin is AGPL Version 3.0
 
