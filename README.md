@@ -21,7 +21,7 @@ Before starting the plugin make sure Wifi is ON and the device with KOreader is 
 That is required in order to obtain an IP address which is used to make a connection from a browser to your device. 
 
 The plugin starts a webserver on the KOReader device at the defined port (default 8080). 
-That webserver runs for the number op seconds you have set (default 60 seconds = 1 min maximum 15 min) and stops automatically to save you a battery drain! 
+That webserver runs for the number op seconds you have set (default 60 seconds = 1 min maximum 15 min) and stops automatically to save you a battery drain! From version 1.1.5 you can also manually Stop the Upload Server via the Browser. This overrules the runtime. 
 The ebooks appear automatically in the folder that you have set as Home folder. 
 So that could be any folder that KOReader can access on the device and that provides write access.
 
