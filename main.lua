@@ -85,6 +85,93 @@ function send_response_location(client, status, location, cookie)
     client:send(response)
 end
 
+local function html_paging_part1(table_head)
+return [[
+    <table id="dataTable">]] .. table_head ..
+        [[<tbody>]]
+end
+
+local function html_paging_part2()
+
+return [[   
+ </tbody>
+    </table>
+
+    <div class="pagination">
+        <button id="prevBtn" onclick="changePage(-1)">Previous</button>
+        <span id="pageInfo">Page 1</span><span id="pageInfoTotal"></span>
+        <button id="nextBtn" onclick="changePage(1)">Next</button> 
+        Jump to Page: 
+        <input type="number" id="pageInput" min="1" placeholder="Page" onchange="jumpToPage()">
+        <button id="jumpBtn" onclick="jumpToPage()">Go</button>
+	    </div>
+
+    <script>
+        // Variables for pagination
+        const rowsPerPage = 10;
+        let currentPage = 1;
+
+        // Get all rows in the tbody (they are already present in the HTML)
+        const tableBody = document.querySelector("#dataTable tbody");
+        const rows = Array.from(tableBody.rows);  // Convert rows to an array
+
+        // Function to render the rows for the current page
+        function renderTable() {
+            // Calculate the rows to display based on the current page
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, rows.length);
+
+            // Clear the current rows from the table body
+            tableBody.innerHTML = "";
+
+            // Append only the rows that should be visible on the current page
+            for (let i = startIndex; i < endIndex; i++) {
+                tableBody.appendChild(rows[i]);
+            }
+
+            // Update the page number information
+            document.getElementById("pageInfo").textContent = `Page ${currentPage}`;
+            
+            // Update the state of the pagination buttons
+            updatePaginationButtons();
+        }
+
+        // Function to handle the page change (forward or backward)
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage > 0 && newPage <= Math.ceil(rows.length / rowsPerPage)) {
+                currentPage = newPage;
+                renderTable();
+            }
+        }
+
+        // Function to update the pagination buttons' state (disable when appropriate)
+        function updatePaginationButtons() {
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            document.getElementById("prevBtn").disabled = currentPage === 1;
+            document.getElementById("nextBtn").disabled = currentPage === totalPages;
+            document.getElementById("pageInfoTotal").textContent = ` of ${totalPages}`;
+        }
+
+        // Function to jump to a specific page entered by the user
+        function jumpToPage() {
+            const inputPage = parseInt(document.getElementById("pageInput").value);
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+
+            if (inputPage >= 1 && inputPage <= totalPages) {
+                currentPage = inputPage;
+                renderTable();
+            } else {
+                alert("Invalid page number!");
+            }
+        }
+
+        // Initial render when the page loads
+        renderTable();
+    </script>
+]]
+end
+
 -- Generate HTML header
 local function html_header(title)
     return [[
@@ -99,6 +186,9 @@ local function html_header(title)
         .container { max-width: 100%; margin: auto; padding: 10px; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         input { width: 100%; padding: 10px; margin: 10px 0; }
         input[type=submit] { width: 50%; background-color: #4CAF50;padding: 10px; margin: 10px 0; }
+        input[type=number] { width: 50px;padding: 5px; margin: 5px 0; }
+        #prevBtn, #nextBtn, #jumpBtn { width: 10%; background-color: #4CAF50;padding: 10px; margin: 10px 0; }
+
         input[type=submit]:hover { background-color: #45a049;}
         button { padding: 10px; width: 100%; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #45a049; }
@@ -141,7 +231,7 @@ local function html_header(title)
     <body>
         <div class="container">
         <div class="nav">
-    <a href="/home">Home</a> | <a href="/upload">Upload eBooks</a> | <a href="/clipping_dir">List Clipboard folder</a> | <a href="/files">List Home folder</a> | <a href="/folders">List eBooks in folders |  <a href="/flat_view_files">List All eBooks | <b><a href="/logout">Logout</b></a>
+    <a href="/home">Home</a> | <a href="/upload">Upload eBooks</a> | <a href="/clipping_dir">List Clipboard folder</a> | <a href="/files">List Home folder</a> | <a href="/folders">List eBooks in folders |  <a href="/flat_view_files">List All eBooks | <b><a href="/logout">Logout</b>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<b><a href="/stop">Stop</b></a>
     </div><br>
     <h1>]] .. title .. [[</h1>
     ]]
@@ -571,11 +661,27 @@ function handle_request(client_socket)
 			[[
 			<p>Bye to the Upload Server. You are now logged out.</p>
 			<ul>
-				<li><a href="/login">Log in again</a>
+				<li><a href="/login">Log in again</a></li>
 			</ul>
-			]] .. html_footer()  
+			]] .. html_footer() 
 			cookie = "UploadsAuthorized=;expires=Thu, 01 Jan 1970 00:00:00 GMT;"	
 			send_response(client_socket, "200 OK", "text/html", html, cookie)  
+      else -- Authentication failed, redirect to login page       
+        send_response_location(client_socket, "302 Found", "/login", cookie) 
+      end  
+        
+	 elseif method == 'GET' and path == "/stop"  then
+	   if is_authorized(headers) then   
+		   local html = html_header("Stop") ..
+			[[
+			<p>The Upload Server has been stopped. You were logged out automatically.</p>
+			<ul>
+				<li><a href="/login">Log in again</a> is only possible after a new start of the Upload Server! If you click before the Upload Server is running a connection is not possible!</li>
+			</ul>
+			]] .. html_footer() 
+			cookie = "UploadsAuthorized=;expires=Thu, 01 Jan 1970 00:00:00 GMT;"	
+			send_response(client_socket, "200 OK", "text/html", html, cookie)  -- first send the stop page the stop server
+			browser_forced_shutdown = true -- force shutdown of server 
       else -- Authentication failed, redirect to login page       
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end   
@@ -587,11 +693,13 @@ function handle_request(client_socket)
 			[[
 			<p>Welcome to the Upload Server. Please choose an action from top menu.</p>
 			<table>
-				<tr><td align="right"><a href="/upload">Upload eBooks</a></td><td>Upload an eBook into your Home folder you have set on KOReader</tr></td>
-				<tr><td align="right"><a href="/clipping_dir">List Clipboard folder</a></td><td>List / download of clipping files from the directory you have set</tr></td>
-				<tr><td align="right"><a href="/files">List Home folder</a></td><td>List / download of <b>only files</b> from Home folder</tr></td>            
-				<tr><td align="right"><a href="/folders">List ebooks in folders</a></td><td>List /download of ebooks per folder e.g. per author</tr></td>
-				<tr><td align="right"><a href="/flat_view_files">List All eBooks</a></td><td>Flat view list / download of ebooks sorted by folder/content</tr></td>			
+				<tr><td align="right"><a href="/upload">Upload eBooks</a></td><td>Upload an eBook into your Home folder you have set on KOReader</td></tr>
+				<tr><td align="right"><a href="/clipping_dir">List Clipboard folder</a></td><td>List / download of clipping files from the directory you have set</td></tr>
+				<tr><td align="right"><a href="/files">List Home folder</a></td><td>List / download of <b>only files</b> from Home folder</td></tr>            
+				<tr><td align="right"><a href="/folders">List</a> or <a href="/folders_paging">Page</a> ebooks in folders</td><td>List or Page &amp; download of ebooks per folder e.g. per author</td></tr>
+				<tr><td align="right"><a href="/flat_view_files">List</a> or <a href="/flat_view_files_paging">Page</a> All eBooks</a></td><td>Flat view list or Page &amp; download ebooks sorted by folder/content</td></tr>			
+				<tr><td align="right" colspan="100%">&nbsp;</td></tr>			
+				<tr><td align="right"><a href="/stop">Stop</a></td><td>Stop the Upload Server on the device immediately.You will be logged out automatically.</td></tr>			
 			</table>
 			]] .. html_footer()  
 			send_response(client_socket, "200 OK", "text/html", html, cookie)  
@@ -724,6 +832,66 @@ function handle_request(client_socket)
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end  
  
+  
+    -- Handle GET request for flat file view listing      
+    elseif method == 'GET' and path == "/flat_view_files_paging" then 
+      if is_authorized(headers) then   
+		local files = io.popen('find "'.. ebooks_dir_to_list  .. '/' .. '" -maxdepth 10 -type f  -name "*.epub" -o -name "*.pdf" -o -name "*.azw3" -o -name "*.mobi" -o -name "*.docx" -o -name "*.cbz" -o -name "*.txt" ! -name "*.opf" ! -name "*.jpg" ! -name "*.gz" ! -name "*.zip" ! -name "*.tar" ') -- on linux
+		local file_list = files:read("*a")
+		files:close()
+		-- print('file_list = ',file_list)
+		-- Function to split the string into a table
+		local function split(files_list, delimiter)
+			local result = {}
+			for match in string.gmatch(file_list, "[^"..delimiter.."]+") do
+				table.insert(result, match)
+			end
+			return result
+		end
+		-- Split the files_list string into a table of substrings
+		local splitted_files = split(files_list, "\n")
+		--print('#splitted_files=', #splitted_files)
+		-- Remove the last empty entry from the table
+		--table.remove(splitted_files, splitted_files)
+		-- Function to print the table
+		--local function print_table(tbl)
+		--	for _, v in ipairs(tbl) do
+		--		print(v)
+		--	end
+		--end
+		-- Sort the table in ascending order
+		local ascending_files = {table.unpack(splitted_files)}
+		table.sort(ascending_files)
+		-- Sort the table in descending order (by reversing the order)
+		--local descending_files = {table.unpack(ascending_files)}
+		--table.sort(descending_files, function(a, b) return a > b end)
+		-- Print the ascending sorted table
+		--print("Ascending Order:")
+		--print_table(ascending_files)
+		-- Print the descending sorted table
+		--print("\nDescending Order:")
+		--print_table(descending_files)
+        local html = html_header("All eBooks in Home folder") ..  
+                      html_paging_part1(  "<table><thead><tr><th>" .. ebooks_dir_to_list .. "</th></tr></thead><table>")   
+		for _, file in ipairs(ascending_files) do
+			--print(line)
+			local path, filename, extension = string.match(file, "(.-)([^\\/]-%.?([^%.\\/]*))$")
+			local file_path = ebooks_dir_to_list .. "/" .. filename
+			--print('file_path1:', file_path, ' filename:', filename)		
+			if filename then
+			  html = html .. "<tr><td><a href='/download?file=" .. url.escape(file) .. "' download='" .. filename ..  "'>" .. filename .. "</a></td></tr>"
+			end
+		end
+        html = html .. html_paging_part2() .. html_footer()
+        --print(html)
+        send_response(client_socket, "200 OK", "text/html", html, cookie) 
+      else -- Authentication failed, redirect to login page       
+        send_response_location(client_socket, "302 Found", "/login", cookie) 
+	  end  
+ 
+ 
+ 
+ 
     -- Handle GET request for flat file view listing      
     elseif method == 'GET' and path == "/flat_view_files" then 
       if is_authorized(headers) then   
@@ -780,6 +948,44 @@ function handle_request(client_socket)
 	  end  
 	  
     -- Handle GET request for folders list  
+    elseif method == 'GET' and path == "/folders_paging" then  
+	  if is_authorized(headers) then 
+        local folders = list_folders(ebooks_dir_to_list)       
+		keys = {}
+		for key, _ in pairs(folders) do
+			table.insert(keys, key)
+		end
+		-- sort the folders
+		table.sort(keys, function(keyLhs, keyRhs) return folders[keyLhs] < folders[keyRhs] end)
+		-- construct the html page	  
+        html = html_header("eBooks in (sub)folders") ..  
+               html_paging_part1("<thead><tr><th>eBook</th><th>Located in folder under " .. ebooks_dir_to_list .. "</th></tr></thead>" )   
+
+        local ebooks_dir_to_list_length = string.len(ebooks_dir_to_list)  
+        for _, folder in ipairs(folders) do
+			local folder_length =  string.len(folder)
+			local path, file, extension = string.match(folder, "(.-)([^\\/]-%.?([^%.\\/]*))$")	
+			local file_length =  string.len(file)
+			-- Data declarations of allow file extensions to be Viewed and/or Downloadable
+			local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "json", "sqlite"}
+			if extMatch(extentions, file) == true then
+			 -- the first / of the folder is not shown so stripped
+				location_display = string.sub(folder, ebooks_dir_to_list_length + 2, folder_length - file_length - 1)
+				location_href =  string.sub(folder, 0, folder_length - file_length - 1)			    
+				if location_dir == "" then
+					location_dir = '.'
+				end  
+				html = html .. "<tr><td><a href='/download?file=" ..  url.escape(folder) .. "' download='" 
+				  .. file ..  "'>" .. file .. "</a></td><td>"  ..location_display  .. "<a href='/indir?dir=" ..   url.escape(location_href) .. "'> List</a></td></tr>"
+			end 
+        end
+        html = html ..  html_paging_part2()  .. html_footer()
+		send_response(client_socket, "200 OK", "text/html", html, cookie)          
+      else -- Authentication failed, redirect to login page       
+        send_response_location(client_socket, "302 Found", "/login", cookie) 
+	  end 
+
+    -- Handle GET request for folders list  
     elseif method == 'GET' and path == "/folders" then  
 	  if is_authorized(headers) then 
         local folders = list_folders(ebooks_dir_to_list)       
@@ -815,6 +1021,8 @@ function handle_request(client_socket)
       else -- Authentication failed, redirect to login page       
         send_response_location(client_socket, "302 Found", "/login", cookie) 
 	  end 
+
+
 
     -- Handle GET requests for download of file
     elseif method == 'GET' and path:match("/download%?file=([^ ]+)") then  -- OR THIS elseif request:match("GET /download") then  
@@ -965,6 +1173,7 @@ end
 
 -- Start HTTP server-- --------------------------------------------------------------------------------------------------
 function start_server()
+	browser_forced_shutdown = false
     if server_running then
         print("Server is already running.")
         return
@@ -1000,6 +1209,9 @@ function start_server()
 					client_socket:close()
 				end			
 			end
+		 if browser_forced_shutdown == true then
+		   break
+		 end
 	  end
 	end
 	wait(seconds_runtime) -- in seconds the the Upload Server will stop automatically to save battery
@@ -1236,8 +1448,12 @@ function MyUpload:RunningServer()
 end
 
 function MyUpload:AutoStopServer()
+    local text_part = 'automatically'
+	if browser_forced_shutdown == true then
+		text_part = 'manually' 
+	end
     local popup = InfoMessage:new{
-        text = _("Upload Server has been stopped automatically. You may close menu or start Upload server again"),
+        text = _("Upload Server has been stopped " .. text_part ..". You may close menu or start Upload server again"),
     }
     UIManager:show(popup)
 end

@@ -107,5 +107,12 @@ version: 1.1.4
   IMPORTANT: limit the number of files in one go as you might crash your KOReader due to memory overflows.
   Do not go beyond the capabilities of your device. As a rule of tumb upload maximum 5 files/eBooks at a time.
   
+version: 1.1.5
+- New function added to Stop the Upload server via the browser. You can overrule the automatically set runtime with this. It unlocks the menu and you can continue immediately with the KOReader.
+- Update Home page and Menu bar with the new Stop function
+- New are the Page function to scroll through the books instead of a long List view. A browser (the most) that supports javascript is needed. 
+  Note: The very limited beta-browser on Kobo is not suitable to work with this Plugin. You can login and list, but download and other functions will not work properly i have noticed.
+- New screen prints of the added functions
   
+    
 
