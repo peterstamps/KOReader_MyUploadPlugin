@@ -188,7 +188,7 @@ local function html_header(title)
         input[type=submit] { width: 50%; background-color: #4CAF50;padding: 10px; margin: 10px 0; }
         input[type=number] { width: 50px;padding: 5px; margin: 5px 0; }
         #prevBtn, #nextBtn, #jumpBtn { width: 10%; background-color: #4CAF50;padding: 10px; margin: 10px 0; }
-
+        a {color: blue; text-decoration: none;}
         input[type=submit]:hover { background-color: #45a049;}
         button { padding: 10px; width: 100%; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #45a049; }
@@ -221,7 +221,7 @@ local function html_header(title)
         table {border-collapse: collapse; width: 100%;}
         table, th, td {border: 1px solid black; text-align:left}
         th, td {padding: 8px;}
-        a {color: blue; text-decoration: none;}
+       
         .nav {margin-top: 20px;padding: 5px;}
     </style>
     <script>
@@ -282,7 +282,7 @@ local function list_folders(dir)
 					end
 				else
 				   -- Data declarations of allow file extensions to be Viewed and/or Downloadable
-					local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "json", "sqlite"}
+					local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "cbz", "json", "sqlite"}
 					if extMatch(extentions, full_path) == true then
 					 table.insert(folders, full_path)
 					end
@@ -304,15 +304,59 @@ function save_uploaded_file(data, filename)
     end
 end
 
+-- Function to get file properties for a file
+function get_properties(file_path)
+    -- Get file attributes using lfs.attributes
+    local attributes = lfs.attributes(file_path)
+    
+    if attributes then
+        -- Get file size (similar to getcontentlength)
+        local file_size = attributes.size
+
+        -- Get last modified date (similar to getlastmodified)
+        local last_modified = os.date("%a, %d %b %Y %H:%M:%S GMT", attributes.modification)
+
+        -- Return the properties
+        return {
+            getcontentlength = file_size,
+            getlastmodified = last_modified
+        }
+    else
+        -- Return nil if the file doesn't exist
+        return nil
+    end
+end
+
 -- Handle file download
 function download_file(file_name, client_socket)
     local file_path = file_name
     --print('file_path3 , file_name3 :', file_path , file_name)
     local file = io.open(file_path, "rb")
     if file then
+        local properties = get_properties(file_path)
         local file_data = file:read("*all")
         file:close()
-        send_response(client_socket, "200 OK", "application/octet-stream", file_data, cookie)
+		local path, file_to_download, extension = string.match(file_path, "(.-)([^\\/]-%.?([^%.\\/]*))$")	
+		local response = "HTTP/1.1  200 OK\r\n"
+		if extension == "epub" then
+			response = response .. "Content-Type:application/epub+zip\r\n"    
+		else
+			response = response .. "Content-Type: application/octet-stream\r\n"  
+		end  
+		response = response .. "Content-Disposition: attachment; filename=" .. file_to_download .. "\r\n"    
+		response = response .. "Last-Modified: " .. properties.getlastmodified .. "\r\n"    
+		response = response .. "Date: " .. os.date("%a, %d %b %Y %H:%M:%S GMT") .. "\r\n"    
+		response = response .. "Server: MyUpload Server\r\n"    
+		
+		
+		-- If a cookie is provided, include it in the response headers
+		if cookie then
+			response = response .. "Set-Cookie: " .. cookie .. "\r\n" 
+		end
+		response = response .. "Content-Length: " .. #file_data .. "\r\n"
+		response = response .. "\r\n" -- End of headers
+		response = response .. file_data
+		client_socket:send(response)             
     else
 		local html = html_header("Error") .. 
     	[[
@@ -734,7 +778,7 @@ function handle_request(client_socket)
 			<p>Upload File to homedir: ]] ..ebooks_dir_to_list .. comment ..[[</p>
 			<p>
 				<form onsubmit="return validateFile()" action='/upload' method='POST' enctype='multipart/form-data'>
-				Select file: <input type='file' id="fileUpload" name='file' multiple  accept=".epub,.azw3,.mobi,.pdf,.txt" required/><br>
+				Select file: <input type='file' id="fileUpload" name='file' multiple  accept=".epub,.azw3,.mobi,.pdf,.txt,.cbz" required/><br>
 				<input type='submit' value='Upload'></form>
 			</p>
 			]] .. html_footer() 
@@ -823,8 +867,11 @@ function handle_request(client_socket)
         html = html_header("Files in Home folder") ..   
         "<table><thead><tr><th>" .. ebooks_dir_to_list .. comment .. "</th></tr></thead><table>"
         for _, file in ipairs(files) do
-            html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list .. '/' ..file) .. "' download='" 
-				  .. file ..  "'>" .. file .. "</a></td><tr>"
+          local href = ebooks_dir_to_list .. '/' .. file
+          html = html .. '<tr><td><a href="/download?file=' .. href .. '" download="' .. file ..  '">' .. file .. '</a></td></tr>'
+
+          --  html = html .. "<tr><td><a href='/download?file=" ..  url.escape(ebooks_dir_to_list) .. '/' ..url.escape(file) .. "' download='" 
+		--		  .. file ..  "'>" .. file .. "</a></td><tr>"
         end
         html = html .. "</table>" .. html_footer()
         send_response(client_socket, "200 OK", "text/html", html, cookie) 
@@ -967,7 +1014,7 @@ function handle_request(client_socket)
 			local path, file, extension = string.match(folder, "(.-)([^\\/]-%.?([^%.\\/]*))$")	
 			local file_length =  string.len(file)
 			-- Data declarations of allow file extensions to be Viewed and/or Downloadable
-			local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "json", "sqlite"}
+			local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "cbz", "json", "sqlite"}
 			if extMatch(extentions, file) == true then
 			 -- the first / of the folder is not shown so stripped
 				location_display = string.sub(folder, ebooks_dir_to_list_length + 2, folder_length - file_length - 1)
@@ -1004,7 +1051,7 @@ function handle_request(client_socket)
 			local path, file, extension = string.match(folder, "(.-)([^\\/]-%.?([^%.\\/]*))$")	
 			local file_length =  string.len(file)
 			-- Data declarations of allow file extensions to be Viewed and/or Downloadable
-			local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "json", "sqlite"}
+			local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "cbz", "json", "sqlite"}
 			if extMatch(extentions, file) == true then
 			 -- the first / of the folder is not shown so stripped
 				location_display = string.sub(folder, ebooks_dir_to_list_length + 2, folder_length - file_length - 1)
@@ -1083,7 +1130,7 @@ function handle_request(client_socket)
 			  -- print('filename = ', filename)
 			  if filename and filename ~= "" then
 				-- Data declarations of allow file extensions to be uploaded
-				local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt"}
+				local extentions = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "cbz"}
 				local path, file, extension = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")       
 				local file_hdrs_data_ = body:sub(end_pos + 4, body:find(end_boundary , end_pos ) - 1) -- this is inclusive the headers 			
 				--[[- IMPORTANT we need to strip these lines!!! form the file_hrs_data

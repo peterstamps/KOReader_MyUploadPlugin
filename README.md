@@ -1,4 +1,4 @@
-Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
+Last updated: Version 1.1.3 at 2025-04-22 time 20:05 CET Download at https://github.com/peterstamps/KOReader_MyUploadPlugin
 
 The valid license for this open source plugin is AGPL Version 3.0
 
@@ -26,8 +26,7 @@ The ebooks appear automatically in the folder that you have set as Home folder.
 So that could be any folder that KOReader can access on the device and that provides write access.
 
 BTW: this is not an wireless upload via VPN or a third party... Nobody else is needed or involved. Just you and your LAN. 
-If you use the standard available Hotspot function of your smart phone and you connect your ereader to your own Hotspot then you have a LAN to work with.
-And if your friend connects also to that Hotspot then you can exchange ebooks directly via upload/download.
+If you use the standard available Hotspot function of the smart phone of your friend and you connect your ereader with the KOReader installed to that Hotspot then you have a LAN to work with. Then connect via a browser to the URL shown by the Upload server and you both can exchange ebooks directly via upload/download as you are both on the same LAN.
 
 The browser menu provides various (sorted) folder listings from where you can download ebooks and all other shown files. You can also download all your clipping files that contain the notes you made in your ebooks from the clipboard folder that you have set in KOreader.
 
@@ -114,5 +113,8 @@ version: 1.1.5
   Note: The very limited beta-browser on Kobo is not suitable to work with this Plugin. You can login and list, but download and other functions will not work properly i have noticed.
 - New screen prints of the added functions
   
-    
+version: 1.1.6
+- Support for .cbz files has been added  
+- Download to Android with Firefox has now the name of the eBook in stead of default "downlaod.bin"  
+- README.md text updated to correct the Hotspot LAN scenario. 
 
