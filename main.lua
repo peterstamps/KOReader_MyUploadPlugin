@@ -337,17 +337,11 @@ function download_file(file_name, client_socket)
         local file_data = file:read("*all")
         file:close()
 		local path, file_to_download, extension = string.match(file_path, "(.-)([^\\/]-%.?([^%.\\/]*))$")	
-		local response = "HTTP/1.1  200 OK\r\n"
-		if extension == "epub" then
-			response = response .. "Content-Type:application/epub+zip\r\n"    
-		else
-			response = response .. "Content-Type: application/octet-stream\r\n"  
-		end  
+		local response = "HTTP/1.1 200 OK\r\n"
 		response = response .. "Content-Disposition: attachment; filename=" .. file_to_download .. "\r\n"    
 		response = response .. "Last-Modified: " .. properties.getlastmodified .. "\r\n"    
 		response = response .. "Date: " .. os.date("%a, %d %b %Y %H:%M:%S GMT") .. "\r\n"    
 		response = response .. "Server: MyUpload Server\r\n"    
-		
 		
 		-- If a cookie is provided, include it in the response headers
 		if cookie then

@@ -115,6 +115,6 @@ version: 1.1.5
   
 version: 1.1.6
 - Support for .cbz files has been added  
-- Download to Android with Firefox has now the name of the eBook in stead of default "downlaod.bin"  
+- Download to Android with Firefox has now the name of the eBook in stead of default "download.bin"  
 - README.md text updated to correct the Hotspot LAN scenario. 
 
