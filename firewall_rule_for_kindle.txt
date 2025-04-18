@@ -1,3 +1,7 @@
+-- ONLY VALID FOR FIRST RELEASE
+-- DO NOT USE THIS IN LATER VERSIONS
+-- AS IT IS THERE ALREADY BUILD-IN
+
 -- Kindle seems to have a own firewall.
 -- It causes issues. I cannot test that
 -- The http inspector plugin use following code.
