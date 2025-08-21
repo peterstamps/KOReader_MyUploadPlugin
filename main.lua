@@ -1,15 +1,22 @@
 
--- This is a plugin to Start and Stop an Upload Server.
-
-local Dispatcher = require("dispatcher")
-local InfoMessage = require("ui/widget/infomessage")
-local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local Dispatcher = require("dispatcher")
+local UIManager = require("ui/uimanager")
+local InfoMessage = require("ui/widget/infomessage")
 local _ = require("gettext")
-local DataStorage = require("datastorage")
 local socket = require("socket")
-
+local DataStorage = require("datastorage")
 local http_server = require("server/http_server")
+local Device = require("device")
+
+if Device:isKindle() then
+        os.execute(string.format("%s %s %s",
+            "iptables -A INPUT -p tcp --dport", 8080,
+            "-m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT"))
+        os.execute(string.format("%s %s %s",
+            "iptables -A OUTPUT -p tcp --sport", 8080,
+            "-m conntrack --ctstate ESTABLISHED -j ACCEPT"))
+end
 
 local MyUpload = WidgetContainer:extend{
 	name = "MyUpload",
@@ -26,8 +33,35 @@ function MyUpload:init()
 	self.ui.menu:registerToMainMenu(self)
 end
 
-local function start_server()
-	http_server.start_server()
+local function show_start_popup_and_run(upload_seconds_run)
+	local MultiConfirmBox = require("ui/widget/multiconfirmbox")
+	local QRMessage = require("ui/widget/qrmessage")
+	local dialog
+	dialog = MultiConfirmBox:new{
+		title = _("Start Upload Server"),
+		text = _("Press Start to begin the Upload Server." ..
+		"\n\nhttp://" .. tostring(Real_ip or "127.0.0.1") .. ":" .. tostring(Port or "8080") ..
+		"\n\nKOReader will appear blocked for ") .. tostring(upload_seconds_run) .. _(" seconds or until the server is manually stopped."),
+		choice1_text = _("Start"),
+		choice1_callback = function()
+			UIManager:close(dialog)
+			http_server.start_server()
+			MyUpload:AutoStopServer()
+		end,
+		choice2_text = _("Show QR Code"),
+		choice2_callback = function()
+			local screen_width = Device.screen_width or 758 -- fallback to Kobo Aura default width
+			local qr_size = math.floor(screen_width * 0.7)
+			local url = "http://" .. tostring(Real_ip or "127.0.0.1") .. ":" .. tostring(Port or "8080")
+			local qr_popup = QRMessage:new{
+				text = url,
+				width = qr_size,
+				height = qr_size,
+			}
+			UIManager:show(qr_popup)
+		end,
+	}
+	UIManager:show(dialog)
 end
 
 function MyUpload:addToMainMenu(menu_items)
@@ -46,11 +80,10 @@ function MyUpload:addToMainMenu(menu_items)
 		text = _( "Upload Server" ),
 		sub_item_table = {
 			{
-				text = "Start Upload server. Stops after " .. tostring(upload_seconds_run) .. "s",
+				text = "Run upload server. Duration: " .. tostring(upload_seconds_run) .. "s",
 				keep_menu_open = true,
 				callback = function()
-					start_server()
-					MyUpload:AutoStopServer()
+					show_start_popup_and_run(upload_seconds_run)
 				end,
 			},
 			{
@@ -155,9 +188,21 @@ function MyUpload:addToMainMenu(menu_items)
 						enabled=true,
 						separator=false,
 						callback = function()
----@diagnostic disable-next-line: undefined-field
-							G_reader_settings:delSetting("Upload_parms")
-							MyUpload:onUpdateUploadSettings()
+			---@diagnostic disable-next-line: undefined-field
+										G_reader_settings:delSetting("Upload_parms")
+										-- Immediately reset to defaults after deleting
+										local default_port = 8080
+										local default_username = "admin"
+										local default_password = "1234"
+										local default_seconds_runtime = 60
+										G_reader_settings:saveSetting("Upload_parms", {
+											ip_address = tostring(Real_ip),
+											port = tonumber(default_port),
+											seconds_runtime = tonumber(default_seconds_runtime),
+											username = tostring(default_username),
+											password = tostring(default_password)
+										})
+										MyUpload:onUpdateUploadSettings()
 						end
 					},
 				},
@@ -167,9 +212,8 @@ function MyUpload:addToMainMenu(menu_items)
 end
 
 function MyUpload:AutoStopServer()
-	local text_part = ' automatically'
 	local popup = InfoMessage:new{
-		text = _( "Upload Server has been stopped" .. text_part ..". You may close menu or start Upload server again" ),
+		text = _( "Upload Server has been stopped automatically. You may close menu or start the server again"),
 	}
 	UIManager:show(popup)
 end
@@ -207,7 +251,13 @@ if G_reader_settings:hasNot("Upload_parms") then
 	local default_username = "admin"
 	local default_password = "1234"
 	local default_seconds_runtime = 60
-	G_reader_settings:saveSetting("Upload_parms", {ip_address = tostring(Real_ip), port = tonumber(default_port), seconds_runtime = tonumber(default_seconds_runtime), username = tostring(default_username), password = tostring(default_password) })
+	G_reader_settings:saveSetting("Upload_parms", {
+		ip_address = tostring(Real_ip),
+		port = tonumber(default_port),
+		seconds_runtime = tonumber(default_seconds_runtime),
+		username = tostring(default_username),
+		password = tostring(default_password)
+	})
 end
 
 if G_reader_settings:has("Upload_parms") then
@@ -215,9 +265,11 @@ if G_reader_settings:has("Upload_parms") then
 	if Upload_parms then
 		Port = tonumber(Upload_parms["port"])
 		Seconds_runtime = tonumber(Upload_parms["seconds_runtime"])
+		Username = tostring(Upload_parms["username"])
+		Password = tostring(Upload_parms["password"])
 	end
 end
 
 print('Defaults: ip: ' .. tostring(Real_ip) .. ', port: ' .. tostring(Port) ..', runtime (seconds): ' .. tostring(Seconds_runtime) )
-
+print('Defaults: username: ' .. tostring(Username) .. ', password: ' .. tostring(Password) )
 return MyUpload
