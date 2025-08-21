@@ -2,10 +2,6 @@ local mime = require("mime")
 
 local M = {}
 
-function M.base64encode(username, password)
-    return mime.b64(username .. ":" .. password)
-end
-
 function M.parse_cookies(headers, cookie_name)
     local cookies = {}
     local specific_cookie_value = nil

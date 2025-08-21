@@ -644,7 +644,7 @@ function M.start_server()
     server_socket:settimeout(0)
     print("Upload server started on port " .. tostring(port))
     local function wait(s)
-        for i=1, s do
+        for _=1, s do
             local lastvar = os.time()
             while lastvar == os.time() do
                 local client_socket = server_socket:accept()

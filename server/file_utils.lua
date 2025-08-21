@@ -65,13 +65,4 @@ function M.save_file(file_data, filename, upload_dir)
     end
 end
 
-function M.extMatch(extList, filename)
-    for _, extension in pairs(extList) do
-        if filename:lower():match("%." .. extension:lower() .. "$") then
-            return true
-        end
-    end
-    return false
-end
-
 return M

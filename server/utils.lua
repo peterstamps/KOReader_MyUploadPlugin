@@ -24,12 +24,4 @@ function M.url_path_parsing(path)
     return parse_query(parsed_url.query)
 end
 
-function M.split(str, delimiter)
-    local result = {}
-    for match in string.gmatch(str, "[^"..delimiter.."]+") do
-        table.insert(result, match)
-    end
-    return result
-end
-
 return M

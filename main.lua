@@ -1,25 +1,14 @@
 
 -- This is a plugin to Start and Stop an Upload Server.
 
-local BD = require("ui/bidi")
 local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
-local QRMessage = require("ui/widget/qrmessage")
-local Device = require("device")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
-local C_ = _.pgettext
-local T = require("ffi/util").template
-local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
 local socket = require("socket")
 
--- Refactored modules
-local file_utils = require("server/file_utils")
-local auth = require("server/auth")
-local html = require("server/html_templates")
-local utils = require("server/utils")
 local http_server = require("server/http_server")
 
 local MyUpload = WidgetContainer:extend{
@@ -42,21 +31,22 @@ local function start_server()
 end
 
 function MyUpload:addToMainMenu(menu_items)
-	check_socket()
-	local Upload_parms = G_reader_settings:readSetting("Upload_parms")
-	local Upload_parms_port, Upload_seconds_run, Upload_username, Upload_password
-	if Upload_parms then
-		Upload_parms_ip_address =  tostring(real_ip)
-		Upload_parms_port = tonumber(Upload_parms["port"])
-		Upload_seconds_run = tonumber(Upload_parms["seconds_runtime"])
-		Upload_username =  tostring(Upload_parms["username"])
-		Upload_password =  tostring(Upload_parms["password"])
+	Check_socket()
+---@diagnostic disable-next-line: undefined-field
+	local upload_parms = G_reader_settings:readSetting("Upload_parms")
+	local upload_parms_port, upload_seconds_run, upload_username, upload_password
+	if upload_parms then
+		Upload_parms_ip_address =  tostring(Real_ip)
+		upload_parms_port = tonumber(upload_parms["port"])
+		upload_seconds_run = tonumber(upload_parms["seconds_runtime"])
+		upload_username =  tostring(upload_parms["username"])
+		upload_password =  tostring(upload_parms["password"])
 	end
 	menu_items.MyUpload = {
 		text = _( "Upload Server" ),
 		sub_item_table = {
 			{
-				text = "Start Upload server. Stops after " .. tostring(seconds_runtime) .. "s",
+				text = "Start Upload server. Stops after " .. tostring(upload_seconds_run) .. "s",
 				keep_menu_open = true,
 				callback = function()
 					start_server()
@@ -81,22 +71,22 @@ function MyUpload:addToMainMenu(menu_items)
 										hint = _("nil or 127.0.0.1? Set to IP address of ereader!"),
 									},
 									{
-										text = Upload_parms_port or "",
+										text = upload_parms_port or "",
 										input_type = "number",
 										hint = _("Port number (default 8080)"),
 									},
 									{
-										text = Upload_seconds_run or "",
+										text = upload_seconds_run or "",
 										input_type = "number",
 										hint = _("Runtime range 60-900 seconds (default 60)."),
 									},
 									{
-										text = Upload_username or "",
+										text = upload_username or "",
 										input_type = "string",
 										hint = _("Username for login into Upload server"),
 									},
 									{
-										text = Upload_password or "",
+										text = upload_password or "",
 										input_type = "string",
 										hint = _("password"),
 									},
@@ -140,6 +130,7 @@ function MyUpload:addToMainMenu(menu_items)
 												if new_username == "" then new_username = "admin" end
 												local new_password = fields[5] or "1234"
 												if new_password == "" then new_password = "1234" end
+---@diagnostic disable-next-line: undefined-field
 												G_reader_settings:saveSetting("Upload_parms", {
 													ip_address = tostring(ip_address),
 													port = tonumber(new_port),
@@ -164,6 +155,7 @@ function MyUpload:addToMainMenu(menu_items)
 						enabled=true,
 						separator=false,
 						callback = function()
+---@diagnostic disable-next-line: undefined-field
 							G_reader_settings:delSetting("Upload_parms")
 							MyUpload:onUpdateUploadSettings()
 						end
@@ -175,9 +167,9 @@ function MyUpload:addToMainMenu(menu_items)
 end
 
 function MyUpload:AutoStopServer()
-	local text_part = 'automatically'
+	local text_part = ' automatically'
 	local popup = InfoMessage:new{
-		text = _( "Upload Server has been stopped " .. text_part ..". You may close menu or start Upload server again" ),
+		text = _( "Upload Server has been stopped" .. text_part ..". You may close menu or start Upload server again" ),
 	}
 	UIManager:show(popup)
 end
@@ -189,21 +181,21 @@ function MyUpload:onUpdateUploadSettings()
 	UIManager:show(popup)
 end
 
-function check_socket()
+function Check_socket()
 	local s = socket.udp()
 	local result = s:setpeername("pool.ntp.org",80)
 	if not result then
 		s:setpeername("north-america.pool.ntp.org",80)
 	end
-	local ip, lport, ip_type = s:getsockname()
+	local ip, _, ip_type = s:getsockname()
 	if ip and ip_type == 'inet' then
-		real_ip = ip
+		Real_ip = ip
 	else
-		real_ip = "127.0.0.1"
+		Real_ip = "127.0.0.1"
 	end
 end
 
-check_socket()
+Check_socket()
 
 if G_reader_settings == nil then
 	G_reader_settings = require("luasettings"):open(
@@ -211,26 +203,21 @@ if G_reader_settings == nil then
 end
 
 if G_reader_settings:hasNot("Upload_parms") then
-	local default_ip_address = "*"
 	local default_port = 8080
 	local default_username = "admin"
 	local default_password = "1234"
 	local default_seconds_runtime = 60
-	G_reader_settings:saveSetting("Upload_parms", {ip_address = tostring(real_ip), port = tonumber(default_port), seconds_runtime = tonumber(default_seconds_runtime), username = tostring(default_username), password = tostring(default_password) })
+	G_reader_settings:saveSetting("Upload_parms", {ip_address = tostring(Real_ip), port = tonumber(default_port), seconds_runtime = tonumber(default_seconds_runtime), username = tostring(default_username), password = tostring(default_password) })
 end
 
 if G_reader_settings:has("Upload_parms") then
 	local Upload_parms = G_reader_settings:readSetting("Upload_parms")
-	local Upload_parms_port, Upload_seconds_run, Upload_username, Upload_password
 	if Upload_parms then
-		Upload_parms_ip_address = tostring(Upload_parms["ip_address"])
-		port = tonumber(Upload_parms["port"])
-		seconds_runtime = tonumber(Upload_parms["seconds_runtime"])
-		username =  tostring(Upload_parms["username"])
-		password =  tostring(Upload_parms["password"])
+		Port = tonumber(Upload_parms["port"])
+		Seconds_runtime = tonumber(Upload_parms["seconds_runtime"])
 	end
 end
 
-print('Defaults: ip: ' .. tostring(real_ip) .. ', port: ' .. tostring(port) ..', runtime (seconds): ' .. tostring(seconds_runtime) )
+print('Defaults: ip: ' .. tostring(Real_ip) .. ', port: ' .. tostring(Port) ..', runtime (seconds): ' .. tostring(Seconds_runtime) )
 
 return MyUpload
