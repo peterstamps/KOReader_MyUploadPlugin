@@ -548,14 +548,18 @@ local function handle_request(client_socket, G_reader_settings)
             send_response_location(client_socket, "302 Found", "/login")
         end
     elseif method == "GET" and path:match("/favicon.ico") then
-        send_response(client_socket, "404 Not Found", "text/plain", "Favicon not found")
+        local svg_bytes = require("server/favicon_svg")
+        if svg_bytes then
+            send_response(client_socket, "200 OK", "image/svg+xml", svg_bytes)
+        else
+            send_response(client_socket, "404 Not Found", "text/plain", "Favicon not found")
+        end
     else
         if auth.is_authorized(headers, G_reader_settings) then
             local html_body = html.header("Not Found") ..
                 [[<p>404 Not Found</p>]] .. html.footer()
             send_response(client_socket, "404 Not Found", "text/html", html_body)
         else
-            print("[ BookDrop ] Unauthorized access attempt to " .. path)
             send_response_location(client_socket, "302 Found", "/login")
         end
     end

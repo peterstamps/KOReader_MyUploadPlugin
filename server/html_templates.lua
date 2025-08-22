@@ -1,5 +1,28 @@
 local M = {}
 
+-- BookDrop SVG logo (blue: #1976d2)
+local function bookdrop_logo_svg()
+        -- Book inside a blue drop
+        return [[<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 12px auto;">
+            <defs>
+                <linearGradient id="dropGradient" x1="32" y1="8" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#1976d2"/>
+                    <stop offset="1" stop-color="#63a4ff"/>
+                </linearGradient>
+            </defs>
+            <!-- Drop background -->
+            <path d="M32 8C32 8 52 32 52 44C52 54 43.0457 58 32 58C20.9543 58 12 54 12 44C12 32 32 8 32 8Z" fill="url(#dropGradient)" stroke="#1976d2" stroke-width="2.5"/>
+            <!-- Book (centered inside drop) -->
+            <g>
+                <polygon points="22,50 22,24 32,28 32,46" fill="#fff" stroke="#1976d2" stroke-width="2.2"/>
+                <polygon points="42,50 42,24 32,28 32,46" fill="#fff" stroke="#1976d2" stroke-width="2.2"/>
+                <line x1="32" y1="28" x2="32" y2="46" stroke="#1976d2" stroke-width="1.2" stroke-dasharray="2,2"/>
+            </g>
+            <!-- Book base shadow -->
+            <ellipse cx="32" cy="54" rx="10" ry="2" fill="#e3f2fd"/>
+        </svg>]]
+end
+
 function M.shutdown_page()
         return [[
         <html><head><title>BookDrop Server Stopped</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,6 +42,11 @@ function M.shutdown_page()
             box-sizing: border-box;
             overflow: hidden;
         }
+        .shutdown-logo {
+            display: block;
+            margin: 0 auto 10px auto;
+            max-width: 64px;
+        }
         .shutdownbox h2 {
             font-size: 1.7em;
             margin-bottom: 18px;
@@ -33,6 +61,7 @@ function M.shutdown_page()
         }
         </style></head><body>
         <div class="shutdownbox">
+            <div class="shutdown-logo">]] .. bookdrop_logo_svg() .. [[</div>
             <h2>BookDrop Server Stopped</h2>
             <p>The BookDrop server has been shut down.<br>You may now close this page.</p>
         </div>
@@ -43,16 +72,17 @@ end
 function M.login_page(show_logged_out)
     local notification_modal = show_logged_out and M.logout_notification_modal() or ''
     local html_body = [[
-            <div class="loginbox">
-            <h2>BookDrop Login</h2>
-            <form action="/login" method="POST">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" autocomplete="username" required>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" autocomplete="current-password" required>
-            <input type="submit" value="Login">
-            </form>
-            </div>
+        <div class="loginbox">
+        ]] .. bookdrop_logo_svg() .. [[
+        <h2>BookDrop Login</h2>
+        <form action="/login" method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" autocomplete="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <input type="submit" value="Login">
+        </form>
+        </div>
     ]]
     local page = [[<html><head><title>BookDrop Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
 html, body { height: 100%; margin: 0; padding: 0; box-sizing: border-box; overflow-x: hidden; }
@@ -182,23 +212,59 @@ local function header(title)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>]] .. (title or "Upload Server") .. [[</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+        html, body {
+            height: 100%;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
             background: #f7f7fa;
             min-height: 100vh;
         }
         .container {
             max-width: 900px;
             margin: 32px auto 24px auto;
-            padding: 28px 18px 18px 18px;
+            padding: 24px 14px 18px 14px;
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 4px 24px 0 rgba(60,80,120,0.10), 0 1.5px 4px 0 rgba(60,80,120,0.08);
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        .headerbar {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 18px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .header-logo {
+            display: block;
+            margin: 0;
+            max-width: 54px;
+            max-height: 54px;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .headerbar .nav {
+            margin-bottom: 0;
+            flex: 1 1 0%;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow-x: visible;
         }
         .page-title-block {
             margin-bottom: 8px;
+        }
+        input[type="file"], form, .uploadbox {
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
         }
         .page-title {
             font-size: 2.1em;
@@ -226,9 +292,13 @@ local function header(title)
             align-items: center;
             background: #f3f4f8;
             border-radius: 12px;
-            padding: 12px 10px 10px 10px;
+            padding: 14px 14px 12px 14px;
             margin-bottom: 24px;
             box-shadow: 0 1px 4px rgba(60,80,120,0.04);
+            min-width: 0;
+            box-sizing: border-box;
+            overflow-x: visible;
+            width: 100%;
         }
         .nav-left, .nav-right {
             display: flex;
@@ -239,10 +309,12 @@ local function header(title)
         .nav a {
             color: #444;
             font-weight: 500;
-            padding: 6px 12px;
+            padding: 6px 8px;
             border-radius: 6px;
             text-decoration: none;
             transition: background 0.18s, color 0.18s;
+            min-width: 0;
+            box-sizing: border-box;
         }
         .nav a:hover, .nav a:focus {
             background: #e0e7ef;
@@ -400,19 +472,57 @@ local function header(title)
         }
         .show-password { margin-top: 10px; }
         @media (max-width: 700px) {
-            .container { padding: 8px 2vw; }
-            .nav { flex-direction: column; align-items: stretch; gap: 0; }
+            .container { padding: 10px 4vw 10px 4vw; width: 100vw; box-sizing: border-box; overflow-x: hidden; }
+            .headerbar { flex-direction: column; gap: 8px; align-items: center; box-sizing: border-box; }
+            .header-logo { margin: 0 auto 10px auto; display: block; }
+            .nav {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+                overflow-x: hidden;
+                padding: 14px 4vw 12px 4vw;
+            }
             .nav-left, .nav-right { flex-direction: column; align-items: stretch; gap: 0; }
-            .nav a { margin: 0 0 6px 0; display: block; }
+            .nav a {
+                margin: 0 0 6px 0;
+                display: block;
+                min-width: 0;
+                box-sizing: border-box;
+                width: 100%;
+                text-align: left;
+                padding: 12px 14px;
+            }
+            .nav .nav-action,
+            .nav .nav-logout,
+            .nav .nav-stop {
+                display: inline-block;
+                width: auto;
+                min-width: 0;
+                padding: 10px 18px;
+                margin: 0 8px 6px 0;
+                text-align: left;
+                box-sizing: border-box;
+            }
             h1 { font-size: 1.3em; }
             th, td { padding: 7px 4px; }
             input, select, textarea { font-size: 0.98em; }
+            input[type="file"], form, .uploadbox {
+                width: 100%;
+                box-sizing: border-box;
+                max-width: 100%;
+            }
         }
     </style>
     </head>
     <body>
     <div class="container">
-    ]] .. nav_menu() .. [[
+    <div class="headerbar">
+      <div class="header-logo">]] .. bookdrop_logo_svg() .. [[</div>
+      ]] .. nav_menu() .. [[
+    </div>
     <h1>]] .. (title or "Upload Server") .. [[</h1>
     ]]
 end
