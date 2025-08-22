@@ -29,46 +29,49 @@ function M.show_settings_dialog(G_reader_settings, ip_address, upload_settings, 
             { text = upload_settings.password or "", input_type = "string", hint = _("password") },
         },
         buttons = {
-            { text = _("Cancel"), id = "close", callback = function() UIManager:close(url_dialog) end },
-            { text = _("OK"), callback = function()
-                local fields = url_dialog:getFields()
-                local ip_address_new = fields[1]
-                local function is_ipv4(opts)
-                    local ip = opts.args[1] or opts.args.ip
-                    if not ip then return false end
-                    if ip == "*" or ip == "0.0.0.0" then return true end
-                    local chunks = {{ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")}}
-                    if #chunks[1] == 4 then
-                        for _,v in ipairs(chunks[1]) do
-                            local n = tonumber(v)
-                            if not n or n < 0 or n > 255 then return false end
+            {
+                { text = _("Cancel"), id = "close", callback = function() UIManager:close(url_dialog) end },
+                { text = _("OK"),
+                callback = function()
+                    local fields = url_dialog:getFields()
+                    local ip_address_new = fields[1]
+                    local function is_ipv4(opts)
+                        local ip = opts.args[1] or opts.args.ip
+                        if not ip then return false end
+                        if ip == "*" or ip == "0.0.0.0" then return true end
+                        local chunks = {{ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")}}
+                        if #chunks[1] == 4 then
+                            for _,v in ipairs(chunks[1]) do
+                                local n = tonumber(v)
+                                if not n or n < 0 or n > 255 then return false end
+                            end
+                            return true
                         end
-                        return true
+                        return false
                     end
-                    return false
-                end
-                if not ip_address_new or ip_address_new == "" or not is_ipv4{args={ip_address_new}} then
-                    ip_address_new = '127.0.0.1'
-                end
-                local new_port = tonumber(fields[2]) or 8080
-                if new_port < 1 or new_port > 65355 then new_port = 8080 end
-                local new_seconds_runtime = tonumber(fields[3]) or 60
-                if new_seconds_runtime < 30 or new_seconds_runtime > 900 then new_seconds_runtime = 60 end
-                local new_username = fields[4] or "admin"
-                if new_username == "" then new_username = "admin" end
-                local new_password = fields[5] or "1234"
-                if new_password == "" then new_password = "1234" end
-                G_reader_settings:saveSetting("Upload_parms", {
-                    ip_address = tostring(ip_address_new),
-                    port = tonumber(new_port),
-                    seconds_runtime = tonumber(new_seconds_runtime),
-                    username = tostring(new_username),
-                    password = tostring(new_password)
-                })
-                UIManager:close(url_dialog)
-                if touchmenu_instance then touchmenu_instance:updateItems() end
-                if on_update then on_update() end
-            end },
+                    if not ip_address_new or ip_address_new == "" or not is_ipv4{args={ip_address_new}} then
+                        ip_address_new = '127.0.0.1'
+                    end
+                    local new_port = tonumber(fields[2]) or 8080
+                    if new_port < 1 or new_port > 65355 then new_port = 8080 end
+                    local new_seconds_runtime = tonumber(fields[3]) or 60
+                    if new_seconds_runtime < 30 or new_seconds_runtime > 900 then new_seconds_runtime = 60 end
+                    local new_username = fields[4] or "admin"
+                    if new_username == "" then new_username = "admin" end
+                    local new_password = fields[5] or "1234"
+                    if new_password == "" then new_password = "1234" end
+                    G_reader_settings:saveSetting("Upload_parms", {
+                        ip_address = tostring(ip_address_new),
+                        port = tonumber(new_port),
+                        seconds_runtime = tonumber(new_seconds_runtime),
+                        username = tostring(new_username),
+                        password = tostring(new_password)
+                    })
+                    UIManager:close(url_dialog)
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                    if on_update then on_update() end
+                end },
+            }
         },
     }
     UIManager:show(url_dialog)
