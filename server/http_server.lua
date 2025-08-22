@@ -6,7 +6,6 @@ local mime = require("mime")
 local file_utils = require("server/file_utils")
 local auth = require("server/auth")
 local html = require("server/html_templates")
-local utils = require("server/utils")
 
 local M = {}
 
@@ -71,14 +70,26 @@ local function get_clipping_dir(G_reader_settings)
     return nil
 end
 
+local function url_path_parsing(path)
+    local parsed_url = url.parse(path)
+    local function parse_query(query)
+        local params = {}
+        for key, value in string.gmatch(query or "", "([^&=?]-)=([^&=?]+)") do
+            params[key] = value
+        end
+        return params
+    end
+    return parse_query(parsed_url.query)
+end
+
 local function handle_login(client_socket, body, G_reader_settings)
-    local query_params = utils.url_path_parsing(body)
+    local query_params = url_path_parsing(body)
     local username = url.unescape(query_params.username)
     local password = url.unescape(query_params.password)
     if auth.validate_password(username, password, G_reader_settings) then
         local auth_cookie = "UploadsAuthorized=" .. mime.b64(username .. ":" .. password)
-        -- Redirect to /home after successful login
-        send_response_location(client_socket, "302 Found", "/home", auth_cookie)
+        -- Redirect to /upload after successful login
+        send_response_location(client_socket, "302 Found", "/upload", auth_cookie)
     else
         local html_body = html.header("Login Failed") ..
             [[<div class="msg">No access to the Upload server</div>]] .. html.footer()
@@ -96,112 +107,30 @@ local function handle_request(client_socket, G_reader_settings)
     local cookie = nil
 
     -- Login page
-    if (method == "GET" and (path == "/" or path == "/login" or path == "")) then
-        local html_body = [[
-        <div class="loginbox">
-        <h2>Upload Server Login</h2>
-        <form action="/login" method="POST">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" autocomplete="username" required>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" autocomplete="current-password" required>
-        <input type="submit" value="Login">
-        </form>
-        </div>
-        ]]
-local page = [[<html><head><title>Upload Server Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
-html, body { height: 100%; margin: 0; padding: 0; box-sizing: border-box; overflow-x: hidden; }
-body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; width: 100vw; overflow-x: hidden; }
-.loginbox {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 24px 0 rgba(60,80,120,0.10), 0 1.5px 4px 0 rgba(60,80,120,0.08);
-  width: 100%;
-  max-width: 340px;
-  margin: 8vh auto 0 auto;
-  padding: 28px 18px 22px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-.loginbox h2 {
-  font-size: 1.6em;
-  margin-bottom: 18px;
-  text-align: center;
-  color: #1a237e;
-}
-.loginbox label {
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: #333;
-}
-.loginbox input[type="text"],
-.loginbox input[type="password"] {
-  padding: 12px;
-  margin-bottom: 18px;
-  border: 1.5px solid #cfd8dc;
-  border-radius: 6px;
-  font-size: 1em;
-  background: #f7fbff;
-  width: 100%;
-  box-sizing: border-box;
-}
-.loginbox input[type="submit"] {
-  padding: 12px 0;
-  background: #1976d2;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 1.1em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.loginbox input[type="submit"]:hover {
-  background: #1565c0;
-}
-@media (max-width: 600px) {
-  .loginbox {
-    margin: 4vh auto 0 auto;
-    padding: 18px 6vw 16px 6vw;
-    max-width: 98vw;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-}
-</style></head><body>]] .. html_body .. [[</body></html>]]
-        send_response(client_socket, "200 OK", "text/html", page)
+    if (method == "GET" and (path == "/" or path:match("^/login") or path == "")) then
+        local show_logged_out = false
+        if path:find('?loggedout=1', 1, true) then show_logged_out = true end
+    local page = html.login_page(show_logged_out)
+    send_response(client_socket, "200 OK", "text/html", page)
     elseif method == "POST" and path == "/login" then
         local body = read_posted_body(client_socket, headers)
         body = '?' .. body
         handle_login(client_socket, body, G_reader_settings)
     elseif method == "GET" and path == "/logout" then
         if auth.is_authorized(headers, G_reader_settings) then
-            local html_body = html.header("Logout") ..
-                [[<p>Bye to the Upload Server. You are now logged out.</p>]] .. html.footer()
             cookie = "UploadsAuthorized=;expires=Thu, 01 Jan 1970 00:00:00 GMT;"
-            send_response(client_socket, "200 OK", "text/html", html_body, cookie)
+            -- send_response(client_socket, "200 OK", "text/html", html_body, cookie)
+            -- Redirect to login page with notification
+            send_response_location(client_socket, "302 Found", "/login?loggedout=1", cookie)
         else
             send_response_location(client_socket, "302 Found", "/login")
         end
     elseif method == "GET" and path == "/stop" then
         if auth.is_authorized(headers, G_reader_settings) then
-            local html_body = html.header("Stop") ..
-                [[<p>The Upload Server has been stopped. You were logged out automatically.</p>]] .. html.footer()
+            local page = html.shutdown_page()
             cookie = "UploadsAuthorized=;expires=Thu, 01 Jan 1970 00:00:00 GMT;"
-            send_response(client_socket, "200 OK", "text/html", html_body, cookie)
+            send_response(client_socket, "200 OK", "text/html", page, cookie)
             M.browser_forced_shutdown = true
-        else
-            send_response_location(client_socket, "302 Found", "/login")
-        end
-
-    elseif method == "GET" and path == "/home" then
-        if auth.is_authorized(headers, G_reader_settings) then
-            local html_body = html.header("Home") ..
-                [[<p>Welcome to the Upload Server. Please choose an action from top menu.</p>]] .. html.footer()
-            send_response(client_socket, "200 OK", "text/html", html_body)
         else
             send_response_location(client_socket, "302 Found", "/login")
         end
@@ -427,7 +356,7 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; w
             -- Check if dir is a real directory using file_utils
             if not file_utils.is_dir(dir) then
                 local html_body = html.header("Error") ..
-                    '<div style="color:red;font-weight:bold;">The path <code>' .. utils.html_escape(dir) .. '</code> is not a directory or does not exist.</div>' ..
+                    '<div style="color:red;font-weight:bold;">The path <code>' .. html.html_escape(dir) .. '</code> is not a directory or does not exist.</div>' ..
                     html.footer()
                 send_response(client_socket, "404 Not Found", "text/html", html_body)
                 return
@@ -604,7 +533,7 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; w
     -- List files in a specific folder (indir)
     elseif method == "GET" and path:match("^/indir%?dir=") then
         if auth.is_authorized(headers, G_reader_settings) then
-            local query_params = utils.url_path_parsing(path)
+            local query_params = url_path_parsing(path)
             local dir_to_list = url.unescape(query_params.dir) or "."
             local files = file_utils.list_files(dir_to_list)
             table.sort(files)
@@ -618,11 +547,17 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; w
         else
             send_response_location(client_socket, "302 Found", "/login")
         end
-
+    elseif method == "GET" and path:match("/favicon.ico") then
+        send_response(client_socket, "404 Not Found", "text/plain", "Favicon not found")
     else
-        local html_body = html.header("Not Found") ..
-            [[<p>404 Not Found</p>]] .. html.footer()
-        send_response(client_socket, "404 Not Found", "text/html", html_body)
+        if auth.is_authorized(headers, G_reader_settings) then
+            local html_body = html.header("Not Found") ..
+                [[<p>404 Not Found</p>]] .. html.footer()
+            send_response(client_socket, "404 Not Found", "text/html", html_body)
+        else
+            print("[ BookDrop ] Unauthorized access attempt to " .. path)
+            send_response_location(client_socket, "302 Found", "/login")
+        end
     end
 end
 

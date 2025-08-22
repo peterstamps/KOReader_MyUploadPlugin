@@ -1,6 +1,6 @@
 local _ = require("gettext")
 return {
-    name = "MyUpload",
-    fullname = _("MyUploads"),
-    description = _([[This plugin starts / stops MyUpload server.]]),
+    name = "BookDrop",
+    fullname = _("BookDrop"),
+    description = _([[This plugin starts / stops the BookDrop server.]]),
 }

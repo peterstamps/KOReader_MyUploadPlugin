@@ -1,11 +1,164 @@
 local M = {}
 
+function M.shutdown_page()
+        return [[
+        <html><head><title>BookDrop Server Stopped</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; }
+        .shutdownbox {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px 0 rgba(60,80,120,0.10), 0 1.5px 4px 0 rgba(60,80,120,0.08);
+            width: 100%;
+            max-width: 400px;
+            margin: 12vh auto 0 auto;
+            padding: 32px 22px 28px 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .shutdownbox h2 {
+            font-size: 1.7em;
+            margin-bottom: 18px;
+            text-align: center;
+            color: #b71c1c;
+        }
+        .shutdownbox p {
+            font-size: 1.15em;
+            color: #333;
+            text-align: center;
+            margin-bottom: 0;
+        }
+        </style></head><body>
+        <div class="shutdownbox">
+            <h2>BookDrop Server Stopped</h2>
+            <p>The BookDrop server has been shut down.<br>You may now close this page.</p>
+        </div>
+        </body></html>
+        ]]
+end
+
+function M.login_page(show_logged_out)
+    local notification_modal = show_logged_out and M.logout_notification_modal() or ''
+    local html_body = [[
+            <div class="loginbox">
+            <h2>BookDrop Login</h2>
+            <form action="/login" method="POST">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" autocomplete="username" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <input type="submit" value="Login">
+            </form>
+            </div>
+    ]]
+    local page = [[<html><head><title>BookDrop Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
+html, body { height: 100%; margin: 0; padding: 0; box-sizing: border-box; overflow-x: hidden; }
+body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; width: 100vw; overflow-x: hidden; }
+.loginbox {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px 0 rgba(60,80,120,0.10), 0 1.5px 4px 0 rgba(60,80,120,0.08);
+    width: 100%;
+    max-width: 340px;
+    margin: 8vh auto 0 auto;
+    padding: 28px 18px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.loginbox h2 {
+    font-size: 1.6em;
+    margin-bottom: 18px;
+    text-align: center;
+    color: #1a237e;
+}
+.loginbox label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+}
+.loginbox input[type="text"],
+.loginbox input[type="password"] {
+    padding: 12px;
+    margin-bottom: 18px;
+    border: 1.5px solid #cfd8dc;
+    border-radius: 6px;
+    font-size: 1em;
+    background: #f7fbff;
+    width: 100%;
+    box-sizing: border-box;
+}
+.loginbox input[type="submit"] {
+    padding: 12px 28px; /* Increased left/right padding for more space */
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.loginbox input[type="submit"]:hover {
+    background: #1565c0;
+}
+@media (max-width: 600px) {
+    .loginbox {
+        margin: 4vh auto 0 auto;
+        padding: 18px 6vw 16px 6vw;
+        max-width: 98vw;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+}
+</style></head><body>]] .. notification_modal .. html_body .. [[</body></html>]]
+        return page
+end
+
+function M.logout_notification_modal()
+        return [[
+                <div id="logoutModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,0.12);">
+                    <div style="background:#e3f2fd;color:#1976d2;padding:22px 36px;border-radius:10px;box-shadow:0 2px 12px rgba(60,80,120,0.18);font-size:1.15em;font-weight:500;min-width:220px;text-align:center;">
+                        You have been logged out.
+                    </div>
+                </div>
+                <script>
+                setTimeout(function() {
+                    var modal = document.getElementById('logoutModal');
+                    if (modal) {
+                        modal.style.transition = 'opacity 0.5s';
+                        modal.style.opacity = 0;
+                        setTimeout(function() { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 500);
+                    }
+                }, 2200);
+                // Remove ?loggedout=1 or &loggedout=1 from the URL so modal only shows once
+                (function() {
+                    var url = window.location.href;
+                    if (url.indexOf('loggedout=1') !== -1) {
+                        var newUrl = url.replace(/[?&]loggedout=1/, function(match, offset) {
+                            // If ?loggedout=1 is the only query, remove the ?
+                            if (match === '?loggedout=1') return '';
+                            // If &loggedout=1, just remove that part
+                            return '';
+                        });
+                        // Remove trailing ? or & if left
+                        newUrl = newUrl.replace(/[?&]$/, '');
+                        window.history.replaceState({}, document.title, newUrl);
+                    }
+                })();
+                </script>
+        ]]
+end
 
 local function nav_menu()
     return [[
     <nav class="nav">
       <div class="nav-left">
-        <a href="/home">Home</a>
         <a href="/upload">Upload eBooks</a>
         <a href="/clipping_dir">Clipboard</a>
         <a href="/files">Home Folder</a>
@@ -266,6 +419,16 @@ end
 
 local function footer()
     return [[</div></body></html>]]
+end
+
+function M.html_escape(str)
+    if not str then return "" end
+    return tostring(str)
+        :gsub('&', '&amp;')
+        :gsub('<', '&lt;')
+        :gsub('>', '&gt;')
+        :gsub('"', '&quot;')
+        :gsub("'", '&#39;')
 end
 
 M.header = header
