@@ -1,6 +1,8 @@
 local lfs = require("libs/libkoreader-lfs")
 local io = require("io")
 local url = require("socket.url")
+local DEBUG = require("dbg")
+local logger = require("logger")
 
 local M = {}
 
@@ -54,7 +56,7 @@ function M.save_file(file_data, filename, upload_dir)
         file_path = url.unescape(file_path)
         local file, err = io.open(file_path, "wb")
         if not file then
-            print("Error opening file for writing: " .. err)
+            if DEBUG.is_on then logger.dbg("Error opening file for writing: " .. err) end
             return false
         end
         file:write(file_data)

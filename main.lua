@@ -4,10 +4,10 @@ local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
 local _ = require("gettext")
 local DataStorage = require("datastorage")
-local http_server = require("server/http_server")
+local http_server = require("bookdrop/http_server")
 local Device = require("device")
-local net_utils = require("server/net_utils")
-local settings_utils = require("server/settings_utils")
+local net_utils = require("bookdrop/net_utils")
+local settings_utils = require("bookdrop/settings_utils")
 
 local BookDrop = WidgetContainer:extend{
 	name = "BookDrop",

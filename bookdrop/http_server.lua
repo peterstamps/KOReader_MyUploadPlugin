@@ -3,9 +3,11 @@ local os = require("os")
 local url = require("socket.url")
 local lfs = require("libs/libkoreader-lfs")
 local mime = require("mime")
-local file_utils = require("server/file_utils")
-local auth = require("server/auth")
-local html = require("server/html_templates")
+local file_utils = require("bookdrop/file_utils")
+local auth = require("bookdrop/auth")
+local html = require("bookdrop/html_templates")
+local DEBUG = require("dbg")
+local logger = require("logger")
 
 local M = {}
 
@@ -287,30 +289,101 @@ local function handle_request(client_socket, G_reader_settings)
                 send_response(client_socket, "400 Bad Request", "text/html", html_body)
                 return
             end
-            local body = read_posted_body(client_socket, headers)
-            -- Parse multipart form data (simple, only first file)
-            local filename, file_data = body:match('filename="([^"]+)".-\r\n\r\n(.-)\r\n%-%-' .. boundary)
-            -- Only allow certain extensions
+
+            local function read_line(sock)
+                local line = ""
+                while true do
+                    local char, err = sock:receive(1)
+                    if not char or char == "" then
+                        if DEBUG.is_on then logger.dbg("[BookDrop] read_line: EOF or error while reading (line so far: '" .. line:gsub("\r", "\\r"):gsub("\n", "\\n") .. "')") end
+                        return nil
+                    end
+                    line = line .. char
+                    if char == "\n" then break end
+                end
+                return line
+            end
+
+            -- Read headers until file part
+            local boundary_str = "--" .. boundary
+            local end_boundary_str = boundary_str .. "--"
+            local found_file = false
+            local filename = nil
             local allowed_exts = {"epub", "pdf", "azw3", "mobi", "docx", "txt", "cbz"}
             local ext_ok = false
-            if filename then
-                for _, ext in ipairs(allowed_exts) do
-                    if filename:lower():match("%." .. ext .. "$") then ext_ok = true break end
+            local file_path = nil
+            local file = nil
+            while true do
+                local line = read_line(client_socket)
+                if not line then
+                    if DEBUG.is_on then logger.dbg("[BookDrop] End of headers or error before file part found.") end
+                    break
+                end
+                if line:find("Content-Disposition: form-data;", 1, true) and line:find("filename=") then
+                    if DEBUG.is_on then logger.dbg("[BookDrop] Found Content-Disposition header with filename.") end
+                    filename = line:match('filename="([^"]+)"')
+                    if filename then
+                        for _, ext in ipairs(allowed_exts) do
+                            if filename:lower():match("%." .. ext .. "$") then ext_ok = true break end
+                        end
+                        file_path = upload_dir .. "/" .. filename
+                        file = io.open(file_path, "wb")
+                        if not file then
+                            if DEBUG.is_on then logger.dbg("[BookDrop] Error opening file for writing: " .. tostring(file_path)) end
+                            break
+                        end
+                        found_file = true
+                        if DEBUG.is_on then logger.dbg("[BookDrop] Ready to write file: " .. file_path) end
+                    end
+                end
+                if found_file and line == "\r\n" then
+                    if DEBUG.is_on then logger.dbg("[BookDrop] End of headers, file content starts next.") end
+                    break -- End of headers, file content starts next
                 end
             end
-            if filename and file_data and ext_ok and type(file_data) == "string" then
-                local ok = file_utils.save_file(file_data, filename, upload_dir)
-                local html_body
-                if ok then
-                    html_body = html.header("Upload of file") .. "<p>File uploaded successfully: " .. filename .. "</p>" .. html.footer()
-                else
-                    html_body = html.header("Upload of file") .. "<p>File upload failed: " .. filename .. "</p>" .. html.footer()
-                end
-                send_response(client_socket, "200 OK", "text/html", html_body)
-            else
+            if not found_file or not ext_ok or not file then
+                if file then file:close() end
                 local html_body = html.header("Upload of file") .. "<p>Invalid upload data or extension not allowed.</p>" .. html.footer()
                 send_response(client_socket, "400 Bad Request", "text/html", html_body)
+                return
             end
+            -- Stream file content line by line until the terminating boundary is seen
+            local total_bytes = 0
+            if DEBUG.is_on then logger.dbg("[BookDrop] Starting file upload stream for " .. (filename or "(unknown)")) end
+            local prev_line = nil
+            while true do
+                local line = read_line(client_socket)
+                if not line then
+                    if DEBUG.is_on then logger.dbg("[BookDrop] Upload stream ended (no more data or error)") end
+                    -- Write the last line if it exists (should not happen for well-formed uploads)
+                    if prev_line then
+                        file:write(prev_line)
+                        total_bytes = total_bytes + #prev_line
+                    end
+                    break
+                end
+                -- Remove trailing CRLF for boundary comparison
+                local line_stripped = line:gsub("[\r\n]+$", "")
+                if line_stripped == boundary_str or line_stripped == end_boundary_str then
+                    if prev_line then
+                        -- Write previous line without its trailing CRLF
+                        local trimmed = prev_line:gsub("[\r\n]+$", "")
+                        file:write(trimmed)
+                        total_bytes = total_bytes + #trimmed
+                    end
+                    if DEBUG.is_on then logger.dbg("[BookDrop] Detected terminating boundary, finishing upload.") end
+                    break
+                end
+                if prev_line then
+                    file:write(prev_line)
+                    total_bytes = total_bytes + #prev_line
+                end
+                prev_line = line
+            end
+            file:close()
+            if DEBUG.is_on then logger.dbg(string.format("[BookDrop] Upload complete: %s, total bytes written: %d", tostring(filename), total_bytes)) end
+            local html_body = html.header("Upload of file") .. "<p>File uploaded successfully: " .. (filename or "(unknown)") .. "</p>" .. html.footer()
+            send_response(client_socket, "200 OK", "text/html", html_body)
         else
             send_response_location(client_socket, "302 Found", "/login")
         end
@@ -548,7 +621,7 @@ local function handle_request(client_socket, G_reader_settings)
             send_response_location(client_socket, "302 Found", "/login")
         end
     elseif method == "GET" and path:match("/favicon.ico") then
-        local svg_bytes = require("server/favicon_svg")
+        local svg_bytes = require("bookdrop/favicon_svg")
         if svg_bytes then
             send_response(client_socket, "200 OK", "image/svg+xml", svg_bytes)
         else
@@ -581,7 +654,7 @@ function M.start_server()
     M.browser_forced_shutdown = false
     local server_socket = assert(socket.bind('*', port))
     server_socket:settimeout(0)
-    print("Upload server started on port " .. tostring(port))
+    if DEBUG.is_on then logger.dbg("Upload server started on port " .. tostring(port)) end
     local function wait(s)
         for _=1, s do
             local lastvar = os.time()
@@ -599,7 +672,7 @@ function M.start_server()
     end
     wait(seconds_runtime)
     server_socket:close()
-    print('Upload server stopped')
+    if DEBUG.is_on then logger.dbg('Upload server stopped') end
 end
 
 return M

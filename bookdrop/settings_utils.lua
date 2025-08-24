@@ -1,4 +1,4 @@
-local net_utils = require("server/net_utils")
+local net_utils = require("bookdrop/net_utils")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
 

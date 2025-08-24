@@ -1,4 +1,6 @@
 local socket = require("socket")
+local DEBUG = require("dbg")
+local logger = require("logger")
 
 local M = {}
 
@@ -30,19 +32,19 @@ local function set_kindle_iptables(port)
         local input_rule = string.format("-A INPUT -p tcp -m tcp --dport %s -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT", port)
         local output_rule = string.format("-A OUTPUT -p tcp -m tcp --sport %s -m conntrack --ctstate ESTABLISHED -j ACCEPT", port)
         if not rule_exists(input_rule) then
-            print("[iptables] Adding INPUT rule for port " .. tostring(port))
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] Adding INPUT rule for port " .. tostring(port)) end
             os.execute("iptables " .. input_rule)
         else
-            print("[BookDrop - iptables] INPUT rule for port " .. tostring(port) .. " already exists, skipping.")
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] INPUT rule for port " .. tostring(port) .. " already exists, skipping.") end
         end
         if not rule_exists(output_rule) then
-            print("[BookDrop - iptables] Adding OUTPUT rule for port " .. tostring(port))
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] Adding OUTPUT rule for port " .. tostring(port)) end
             os.execute("iptables " .. output_rule)
         else
-            print("[BookDrop - iptables] OUTPUT rule for port " .. tostring(port) .. " already exists, skipping.")
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] OUTPUT rule for port " .. tostring(port) .. " already exists, skipping.") end
         end
     else
-        print("[BookDrop - iptables] Not a Kindle device, skipping firewall rule changes.")
+        if DEBUG.is_on then logger.dbg("[BookDrop - iptables] Not a Kindle device, skipping firewall rule changes.") end
     end
 end
 
@@ -54,16 +56,16 @@ local function remove_kindle_iptables(port)
         if rule_exists("-A " .. input_rule) then
             os.execute("iptables -D " .. input_rule)
         else
-            print("[BookDrop - iptables] INPUT rule for port " .. tostring(port) .. " does not exist, skipping remove.")
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] INPUT rule for port " .. tostring(port) .. " does not exist, skipping remove.") end
         end
         if rule_exists("-A " .. output_rule) then
-            print("[BookDrop - iptables] Removing OUTPUT rule for port " .. tostring(port))
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] Removing OUTPUT rule for port " .. tostring(port)) end
             os.execute("iptables -D " .. output_rule)
         else
-            print("[BookDrop - iptables] OUTPUT rule for port " .. tostring(port) .. " does not exist, skipping remove.")
+            if DEBUG.is_on then logger.dbg("[BookDrop - iptables] OUTPUT rule for port " .. tostring(port) .. " does not exist, skipping remove.") end
         end
     else
-        print("[BookDrop - iptables] Not a Kindle device, skipping firewall rule removal.")
+        if DEBUG.is_on then logger.dbg("[BookDrop - iptables] Not a Kindle device, skipping firewall rule removal.") end
     end
 end
 
