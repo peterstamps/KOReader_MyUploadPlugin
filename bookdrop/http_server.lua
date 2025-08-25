@@ -402,8 +402,7 @@ local function handle_request(client_socket, G_reader_settings)
                 html_body = html_body .. '</tbody></table>' .. html.footer()
                 send_response(client_socket, "200 OK", "text/html", html_body)
             else
-                local html_body = html.header("Files in folder") ..
-                    '<p>No Export folder for Notes and Highlights is specified in Koreader</p>' .. html.footer()
+                                local html_body = html.header("Files in folder") .. html.clipping_dir_not_set_alert() .. html.footer()
                 send_response(client_socket, "200 OK", "text/html", html_body)
             end
         else

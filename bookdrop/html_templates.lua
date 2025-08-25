@@ -1,5 +1,22 @@
 local M = {}
 
+-- Styled alert for missing Notes and Highlights Export folder
+function M.clipping_dir_not_set_alert()
+        return [[
+<div style="max-width:600px;margin:2em auto;padding:1.5em 1em;background:#fff3cd;border:1px solid #ffeeba;border-radius:8px;color:#856404;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <strong style="font-size:1.15em;">Notes and Highlights Export folder not set</strong>
+    <ol style="margin:1em 0 0 1.2em;padding:0;">
+        <li>On your KOReader device, open <b>Settings (Screwdriver & Spanner menu)</b>.</li>
+        <li>Select <b>Export highlights</b>.</li>
+        <li>Select <b>Choose export folder</b>.</li>
+        <li>Set the export folder to a valid folder.</li>
+        <li>Restart the BookDrop server and try again.</li>
+    </ol>
+    <div style="margin-top:1em;font-size:0.97em;color:#6c757d;">This is required to access your notes and highlights from the web interface.</div>
+</div>
+        ]]
+end
+
 -- BookDrop SVG logo (blue: #1976d2)
 local function bookdrop_logo_svg()
         -- Book inside a blue drop
