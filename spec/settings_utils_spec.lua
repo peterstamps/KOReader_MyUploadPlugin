@@ -1,11 +1,7 @@
--- Provide test-time mocks for modules required at load time
-package.loaded['socket'] = { udp = function() return { setpeername = function() return true end, getsockname = function() return '192.0.2.5', 12345, 'inet' end } end }
-package.loaded['ui/uimanager'] = { show = function() end, close = function() end }
-package.loaded['gettext'] = function(s) return s end
-package.loaded['dbg'] = { is_on = false }
-package.loaded['logger'] = { dbg = function() end }
+local setup = require('spec.support.init')
 
--- mock bookdrop.net_utils before requiring settings_utils so the module uses this mock
+-- override bookdrop.net_utils specific mock used by these tests
+package.loaded['bookdrop.net_utils'] = { get_ip_address = function() return '10.0.0.1' end }
 package.loaded['bookdrop/net_utils'] = { get_ip_address = function() return '10.0.0.1' end }
 
 local M = require('bookdrop.settings_utils')

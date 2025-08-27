@@ -3,7 +3,7 @@ local html = require('bookdrop.html_templates')
 describe('html_templates', function()
     describe('html_escape', function()
         it('escapes HTML special characters', function()
-            local s = [[&<>"']] 
+            local s = [[&<>"']]
             local escaped = html.html_escape(s)
             assert.is_string(escaped)
             assert.is_not_nil(escaped:find('&amp;'))

@@ -1,13 +1,7 @@
--- Tests for bookdrop/net_utils.lua
--- Provide basic mocks before requiring the module
-package.loaded['dbg'] = { is_on = false }
-package.loaded['logger'] = { dbg = function() end }
+local support = require('spec.support.init')
 
 local function require_net_utils_with_socket(socket_mock)
-    package.loaded['socket'] = socket_mock
-    package.loaded['bookdrop.net_utils'] = nil
-    package.loaded['bookdrop/net_utils'] = nil
-    return require('bookdrop.net_utils')
+    return support.require_net_utils_with_socket(socket_mock)
 end
 
 describe('net_utils', function()
