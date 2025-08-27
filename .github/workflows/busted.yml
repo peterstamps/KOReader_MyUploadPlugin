@@ -8,12 +8,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Lua and busted
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lua5.4 luarocks
-          sudo luarocks install busted
-      - name: Run tests
-        run: |
-          busted -v
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run busted tests
+        uses: lunarmodules/busted@v0
+        with:
+          args: --verbose
