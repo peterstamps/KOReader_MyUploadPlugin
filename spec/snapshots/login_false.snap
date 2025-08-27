@@ -1,0 +1,90 @@
+<html><head><title>BookDrop Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
+html, body { height: 100%; margin: 0; padding: 0; box-sizing: border-box; overflow-x: hidden; }
+body { font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh; width: 100vw; overflow-x: hidden; }
+.loginbox {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px 0 rgba(60,80,120,0.10), 0 1.5px 4px 0 rgba(60,80,120,0.08);
+    width: 100%;
+    max-width: 340px;
+    margin: 8vh auto 0 auto;
+    padding: 28px 18px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.loginbox h2 {
+    font-size: 1.6em;
+    margin-bottom: 18px;
+    text-align: center;
+    color: #1a237e;
+}
+.loginbox label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+}
+.loginbox input[type="text"],
+.loginbox input[type="password"] {
+    padding: 12px;
+    margin-bottom: 18px;
+    border: 1.5px solid #cfd8dc;
+    border-radius: 6px;
+    font-size: 1em;
+    background: #f7fbff;
+    width: 100%;
+    box-sizing: border-box;
+}
+.loginbox input[type="submit"] {
+    padding: 12px 28px; /* Increased left/right padding for more space */
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.loginbox input[type="submit"]:hover {
+    background: #1565c0;
+}
+@media (max-width: 600px) {
+    .loginbox {
+        margin: 4vh auto 0 auto;
+        padding: 18px 6vw 16px 6vw;
+        max-width: 98vw;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+}
+</style></head><body>        <div class="loginbox">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 12px auto;">
+            <defs>
+                <linearGradient id="dropGradient" x1="32" y1="8" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#1976d2"/>
+                    <stop offset="1" stop-color="#63a4ff"/>
+                </linearGradient>
+            </defs>
+            <!-- Drop background -->
+            <path d="M32 8C32 8 52 32 52 44C52 54 43.0457 58 32 58C20.9543 58 12 54 12 44C12 32 32 8 32 8Z" fill="url(#dropGradient)" stroke="#1976d2" stroke-width="2.5"/>
+            <!-- Book (centered inside drop) -->
+            <g>
+                <polygon points="22,50 22,24 32,28 32,46" fill="#fff" stroke="#1976d2" stroke-width="2.2"/>
+                <polygon points="42,50 42,24 32,28 32,46" fill="#fff" stroke="#1976d2" stroke-width="2.2"/>
+                <line x1="32" y1="28" x2="32" y2="46" stroke="#1976d2" stroke-width="1.2" stroke-dasharray="2,2"/>
+            </g>
+            <!-- Book base shadow -->
+            <ellipse cx="32" cy="54" rx="10" ry="2" fill="#e3f2fd"/>
+        </svg>        <h2>BookDrop Login</h2>
+        <form action="/login" method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" autocomplete="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <input type="submit" value="Login">
+        </form>
+        </div>
+    </body></html>
