@@ -7,5 +7,3 @@ test:
 update-snapshots:
 	@echo "Updating HTML snapshots..."
 	@./scripts/update-snapshots.sh
-
-ci: test
