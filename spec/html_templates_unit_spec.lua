@@ -1,0 +1,20 @@
+local html = require('bookdrop.html_templates')
+
+describe('html_templates', function()
+    describe('html_escape', function()
+        it('escapes HTML special characters', function()
+            local s = [[&<>"']]
+            local escaped = html.html_escape(s)
+            assert.is_string(escaped)
+            assert.is_not_nil(escaped:find('&amp;'))
+            assert.is_not_nil(escaped:find('&lt;'))
+            assert.is_not_nil(escaped:find('&gt;'))
+            assert.is_not_nil(escaped:find('&quot;'))
+            assert.is_not_nil(escaped:find('&#39;'))
+        end)
+
+        it('returns empty string for nil input', function()
+            assert.are_equal('', html.html_escape(nil))
+        end)
+    end)
+end)
