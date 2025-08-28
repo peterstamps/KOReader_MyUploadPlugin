@@ -6,9 +6,14 @@ function M.parse_cookies(headers, cookie_name)
     local cookies = {}
     local specific_cookie_value = nil
     if headers["cookie"] then
+        local function trim(s)
+            return (s:gsub("^%s*(.-)%s*$", "%1"))
+        end
         for cookie in headers["cookie"]:gmatch("([^;]+)") do
             local key, value = cookie:match("([^=]+)=([^;]+)")
             if key and value then
+                key = trim(key)
+                value = trim(value)
                 cookies[key] = value
                 if cookie_name and key == cookie_name then
                     specific_cookie_value = value
