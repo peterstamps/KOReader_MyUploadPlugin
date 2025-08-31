@@ -118,3 +118,5 @@ version: 1.1.6
 - Download to Android with Firefox has now the name of the eBook in stead of default "download.bin"  
 - README.md text updated to correct the Hotspot LAN scenario. 
 
+version 1.1.7
+- Move of the menu entry NEW: Upload Server under Clogs icon, Upload Server. The word NEW is now dropped.
