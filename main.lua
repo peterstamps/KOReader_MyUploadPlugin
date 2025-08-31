@@ -1325,7 +1325,7 @@ function MyUpload:addToMainMenu(menu_items)
 	end
     menu_items.MyUpload = {
         text = _("Upload Server"),
-        -- sorting_hint = "more_tools",
+        sorting_hint = "network",
         sub_item_table = { 
 		    {  
                 text = "Is device via Wifi connected to LAN? Then start Upload server", 
